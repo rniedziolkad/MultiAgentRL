@@ -2,3 +2,5 @@ saved_models*
 rewards_history*
 .idea
 *.png
+py_cache
+*.pyc
