@@ -6,7 +6,7 @@ import torch
 
 N_AGENTS = 3
 
-MAX_EPISODES = 100_000
+MAX_EPISODES = 100_001
 MAX_STEPS = 25
 BATCH_SIZE = 2
 
@@ -52,13 +52,13 @@ for episode in range(MAX_EPISODES):
         plt.plot(range(100, len(rolling_avg) + 100), rolling_avg, c='red')
         ax = plt.gca()
         ax.set_ylim([None, 0])
-        plt.savefig("dqn3agents.png")
+        plt.savefig(f"dqn{N_AGENTS}agents.png")
 
     if (episode + 1) % 500 == 0:
         # saving data for later
-        torch.save(rewards_history, 'dqn_rewards_history3agents.pth')
+        torch.save(rewards_history, f'dqn_rewards_history{N_AGENTS}agents.pth')
     if episode % 10_000 == 0:
         for agent in agents:
-            agent.save_model("dqn/saved_models3/ep"+str(episode)+"/")
+            agent.save_model(f"independent_dqn/saved_models{N_AGENTS}/ep"+str(episode)+"/")
 
 env.close()

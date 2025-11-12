@@ -4,3 +4,4 @@ rewards_history*
 *.png
 py_cache
 *.pyc
+*.pth
