@@ -53,13 +53,13 @@ for episode in range(MAX_EPISODES):
         plt.plot(range(100, len(rolling_avg) + 100), rolling_avg, c='red')
         ax = plt.gca()
         ax.set_ylim([None, 0])
-        plt.savefig("maddpg4agents.png")
+        plt.savefig(f"maddpg{N_AGENTS}agents.png")
 
     if (episode + 1) % 500 == 0:
         # saving data for later
-        torch.save(rewards_history, 'maddpg_rewards_history4agents.pth')
+        torch.save(rewards_history, f'maddpg_rewards_history{N_AGENTS}agents.pth')
     if episode % 10_000 == 0:
         for agent in agents:
-            agent.save_model("maddpg/saved_models4/ep"+str(episode)+"/")
+            agent.save_model(f"maddpg/saved_models{N_AGENTS}/ep"+str(episode)+"/")
 
 env.close()
