@@ -1,25 +1,24 @@
 from pettingzoo.mpe import simple_spread_v3
-from maddpg.agent import MADDPGAgent
-from maddpg.replay_buffer import ReplayBuffer
+from model_based.agent import MBAgent
+from model_based.replay_buffer import ReplayBuffer
 import numpy as np
 from matplotlib import pyplot as plt
 import torch
 
 N_AGENTS = 4
 
-MAX_EPISODES = 100_000
+MAX_EPISODES = 100_001
 MAX_STEPS = 25
 BATCH_SIZE = 32
 
 env = simple_spread_v3.parallel_env(N=N_AGENTS, max_cycles=MAX_STEPS, render_mode="none")
 env.reset(seed=42)
-agents = [MADDPGAgent(name, env.observation_space(name).shape[0], env.action_space(name).n, n_agents=N_AGENTS)
+agents = [MBAgent(name, env.observation_space(name).shape[0], env.action_space(name).n, n_agents=N_AGENTS)
           for name in env.agents]
 
 print(agents)
-replay_buffer = ReplayBuffer()
 rewards_history = []
-
+# TODO: fix training loop
 for episode in range(MAX_EPISODES):
     obs, _ = env.reset()
     total_reward = 0

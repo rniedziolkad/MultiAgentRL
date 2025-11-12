@@ -12,7 +12,7 @@ class EnvironmentModel(nn.Module):
         self.relu3 = nn.ReLU()
         self.next_states_layer = nn.Linear(128, act_dim * obs_dim)
         self.reward_layer = nn.Linear(128, act_dim)
-        self.final_layer = nn.Linear(128, act_dim)
+        # self.final_layer = nn.Linear(128, act_dim)
 
     def forward(self, x):
         x = self.relu1(self.layer1(x))
@@ -20,8 +20,8 @@ class EnvironmentModel(nn.Module):
         x = self.relu3(self.layer3(x))
         next_states = self.next_states_layer(x)
         rewards = self.reward_layer(x)
-        final = nn.functional.sigmoid(self.final_layer(x))
-        return next_states, rewards, final
+        # final = nn.functional.sigmoid(self.final_layer(x))
+        return next_states, rewards     # , final
 
 
 # Value Network V(state) --- "how valuable being in given state is"

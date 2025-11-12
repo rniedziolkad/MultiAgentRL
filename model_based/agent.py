@@ -5,6 +5,7 @@ import torch.optim as optim
 from model_based.model import ValueNetwork, EnvironmentModel
 from model_based.replay_buffer import ReplayBuffer
 import numpy as np
+import torch.nn.functional as F
 
 
 class MBAgent:
@@ -34,7 +35,7 @@ class MBAgent:
     def act(self, obs, explore=True):
         with torch.no_grad():
             obs_tensor = torch.tensor(np.arraay(obs), device=self.device)
-            next_states, rewards, final = self.environment_model(obs_tensor)
+            next_states, rewards = self.environment_model(obs_tensor)
             next_states_values = self.value_network(next_states)
             if explore:
                 eps = self.eps_end + (self.eps_start - self.eps_end) * math.exp(-1. * self.steps_done / self.eps_decay)
@@ -42,11 +43,38 @@ class MBAgent:
                 if np.random.random_sample() < eps:
                     return np.random.randint(0, next_states.shape[-1])
 
-            expected_returns = self.gamma * next_states_values * (1-final) + rewards
+            expected_returns = self.gamma * next_states_values + rewards
             return torch.argmax(expected_returns)
 
     def update(self, samples):
-        pass
+        states, actions, rewards, next_states = samples
+
+        states = torch.tensor(np.array(states), device=self.device, dtype=torch.float32)
+        actions = torch.tensor(np.array(actions), device=self.device, dtype=torch.int64)
+        rewards = torch.tensor(np.array(rewards), device=self.device, dtype=torch.float32)
+        next_states = torch.tensor(np.array(next_states), device=self.device, dtype=torch.float32)
+        # ======== Environment Model update ========
+
+        pred_next_states, pred_rewards = self.environment_model(states)
+        # reshape pred_next_states: (B, act_dim * obs_dim) → (B, act_dim, obs_dim)
+        pred_next_states = pred_next_states.view(-1, self.act_dim, self.obs_dim)
+        print("all predicted next states:", pred_next_states)
+        print("all predicted rewards:", pred_rewards)
+        # gather predictions for actual actions
+        batch_idx = torch.arange(pred_next_states.size(0), device=self.device)
+        pred_next_states = pred_next_states[batch_idx, actions]
+        pred_rewards = pred_rewards[batch_idx, actions]
+        print("selected predicted next states:", pred_next_states)
+        print("selected predicted rewards:", pred_rewards)
+
+        # compute loss and optimize environment model
+        next_states_loss = F.mse_loss(pred_next_states, next_states)
+        rewards_loss = F.mse_loss(pred_rewards, rewards)
+        environment_loss = next_states_loss + rewards_loss
+        self.environment_optimizer.zero_grad()
+        environment_loss.backward()
+        self.environment_optimizer.step()
+        # TODO: value network update
 
     def __repr__(self):
         return self.name + "[obs: " + str(self.obs_dim) + " act: " + str(self.act_dim) + "]"
