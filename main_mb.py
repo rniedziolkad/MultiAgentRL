@@ -41,6 +41,7 @@ for episode in range(MAX_EPISODES):
             if len(agent.replay) >= BATCH_SIZE:
                 samples = agent.replay.sample(BATCH_SIZE)
                 agent.update(samples)
+                agent.update_value(obs[agent.name], rewards[agent.name], next_obs[agent.name])
 
     print("episode", episode, "reward:", total_reward)
     rewards_history.append(total_reward)

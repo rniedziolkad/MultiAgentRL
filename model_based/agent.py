@@ -72,20 +72,21 @@ class MBAgent:
         environment_loss.backward()
         self.environment_optimizer.step()
 
+    def update_value(self, obs, reward, next_state):
+        obs = torch.tensor(np.array(obs), device=self.device, dtype=torch.float32)
+        next_state = torch.tensor(np.array(next_state), device=self.device, dtype=torch.float32)
         # ======== Value Network Update ========
-        states_values = self.value_network(states)
+        state_value = self.value_network(obs)
         with torch.no_grad():
-            next_states_values = self.value_target(next_states)
-            rewards = rewards.unsqueeze(-1)
-            target_states_values = self.gamma * next_states_values + rewards
+            next_state_value = self.value_target(next_state)
+            target_state_value = self.gamma * next_state_value + reward
 
-        states_values_loss = F.mse_loss(states_values, target_states_values)
+        states_values_loss = F.mse_loss(state_value, target_state_value)
         self.value_optimizer.zero_grad()
         states_values_loss.backward()
         self.value_optimizer.step()
         # target network soft update
         self._soft_update(self.value_target, self.value_network)
-
 
     def _soft_update(self, target, source):
         for t, s in zip(target.parameters(), source.parameters()):
