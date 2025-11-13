@@ -5,3 +5,4 @@ rewards_history*
 py_cache
 *.pyc
 *.pth
+__pycache__

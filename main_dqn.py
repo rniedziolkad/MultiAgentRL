@@ -4,11 +4,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 import torch
 
-N_AGENTS = 3
+N_AGENTS = 4
 
 MAX_EPISODES = 100_001
 MAX_STEPS = 25
-BATCH_SIZE = 2
+BATCH_SIZE = 32
 
 env = simple_spread_v3.parallel_env(N=N_AGENTS, max_cycles=MAX_STEPS, render_mode="none")
 env.reset(seed=42)

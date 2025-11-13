@@ -17,8 +17,8 @@ agents = [MBAgent(name, env.observation_space(name).shape[0], env.action_space(n
           for name in env.agents]
 
 print(agents)
+print("cuda" if torch.cuda.is_available() else "cpu")
 rewards_history = []
-# TODO: fix training loop
 for episode in range(MAX_EPISODES):
     obs, _ = env.reset()
     total_reward = 0
@@ -30,16 +30,17 @@ for episode in range(MAX_EPISODES):
             actions[agent.name] = action
 
         next_obs, rewards, terminations, truncations, _ = env.step(actions)
-        replay_buffer.add((obs, actions, rewards, next_obs))
+        for agent in agents:
+            agent.replay.add((obs[agent.name], actions[agent.name], rewards[agent.name], next_obs[agent.name]))
 
         obs = next_obs
         total_reward += sum(rewards.values())
 
         # Update networks after enough samples collected
-        if len(replay_buffer) >= BATCH_SIZE:
-            samples = replay_buffer.sample(BATCH_SIZE)
-            for agent in agents:
-                agent.update(samples, agents)
+        for agent in agents:
+            if len(agent.replay) >= BATCH_SIZE:
+                samples = agent.replay.sample(BATCH_SIZE)
+                agent.update(samples)
 
     print("episode", episode, "reward:", total_reward)
     rewards_history.append(total_reward)
@@ -52,13 +53,13 @@ for episode in range(MAX_EPISODES):
         plt.plot(range(100, len(rolling_avg) + 100), rolling_avg, c='red')
         ax = plt.gca()
         ax.set_ylim([None, 0])
-        plt.savefig(f"maddpg{N_AGENTS}agents.png")
+        plt.savefig(f"mb{N_AGENTS}agents.png")
 
     if (episode + 1) % 500 == 0:
         # saving data for later
-        torch.save(rewards_history, f'maddpg_rewards_history{N_AGENTS}agents.pth')
+        torch.save(rewards_history, f'mb_rewards_history{N_AGENTS}agents.pth')
     if episode % 10_000 == 0:
         for agent in agents:
-            agent.save_model(f"maddpg/saved_models{N_AGENTS}/ep"+str(episode)+"/")
+            agent.save_model(f"model_based/saved_models{N_AGENTS}/ep"+str(episode)+"/")
 
 env.close()
