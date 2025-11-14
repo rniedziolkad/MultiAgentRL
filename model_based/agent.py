@@ -35,7 +35,7 @@ class MBAgent:
         self.steps_done = 0
 
     def act(self, obs, explore=True):
-        with torch.no_grad():
+        with torch.inference_mode():
             obs_tensor = torch.as_tensor(obs, device=self.device, dtype=torch.float32)
             next_states, rewards = self.environment_model(obs_tensor)
             next_states = next_states.view(self.act_dim, self.obs_dim)
