@@ -19,13 +19,14 @@ class MBAgent:
         self.eps_end = eps_end
         self.eps_decay = eps_decay
         self.tau = tau
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cpu")
 
         self.value_network = ValueNetwork(obs_dim).to(self.device)
         self.value_target = ValueNetwork(obs_dim).to(self.device)
         self.value_target.load_state_dict(self.value_network.state_dict())
 
-        self.environment_model = EnvironmentModel(obs_dim, act_dim)
+        self.environment_model = EnvironmentModel(obs_dim, act_dim).to(self.device)
 
         self.value_optimizer = optim.Adam(self.value_network.parameters(), lr=0.0001)
         self.environment_optimizer = optim.Adam(self.environment_model.parameters(), lr=0.0001)
@@ -35,7 +36,7 @@ class MBAgent:
 
     def act(self, obs, explore=True):
         with torch.no_grad():
-            obs_tensor = torch.tensor(np.array(obs), device=self.device)
+            obs_tensor = torch.as_tensor(obs, device=self.device, dtype=torch.float32)
             next_states, rewards = self.environment_model(obs_tensor)
             next_states = next_states.view(self.act_dim, self.obs_dim)
             next_states_values = self.value_network(next_states).flatten()
@@ -51,10 +52,10 @@ class MBAgent:
     def update(self, samples):
         states, actions, rewards, next_states = samples
 
-        states = torch.tensor(np.array(states), device=self.device, dtype=torch.float32)
-        actions = torch.tensor(np.array(actions), device=self.device, dtype=torch.int64)
-        rewards = torch.tensor(np.array(rewards), device=self.device, dtype=torch.float32)
-        next_states = torch.tensor(np.array(next_states), device=self.device, dtype=torch.float32)
+        states = torch.stack(states)
+        actions = torch.as_tensor(actions, device=self.device, dtype=torch.int64)
+        rewards = torch.as_tensor(rewards, device=self.device, dtype=torch.float32)
+        next_states = torch.stack(next_states)
         # ======== Environment Model update ========
 
         pred_next_states, pred_rewards = self.environment_model(states)
@@ -73,8 +74,8 @@ class MBAgent:
         self.environment_optimizer.step()
 
     def update_value(self, obs, reward, next_state):
-        obs = torch.tensor(np.array(obs), device=self.device, dtype=torch.float32)
-        next_state = torch.tensor(np.array(next_state), device=self.device, dtype=torch.float32)
+        obs = torch.as_tensor(obs, device=self.device, dtype=torch.float32)
+        next_state = torch.as_tensor(next_state, device=self.device, dtype=torch.float32)
         # ======== Value Network Update ========
         state_value = self.value_network(obs)
         with torch.no_grad():

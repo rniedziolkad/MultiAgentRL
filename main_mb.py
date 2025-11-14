@@ -31,7 +31,12 @@ for episode in range(MAX_EPISODES):
 
         next_obs, rewards, terminations, truncations, _ = env.step(actions)
         for agent in agents:
-            agent.replay.add((obs[agent.name], actions[agent.name], rewards[agent.name], next_obs[agent.name]))
+            agent.replay.add((
+                torch.as_tensor(obs[agent.name], device=agent.device, dtype=torch.float32),
+                actions[agent.name],
+                rewards[agent.name],
+                torch.as_tensor(next_obs[agent.name], device=agent.device, dtype=torch.float32)
+            ))
 
         obs = next_obs
         total_reward += sum(rewards.values())
