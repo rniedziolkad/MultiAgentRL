@@ -38,15 +38,15 @@ for episode in range(MAX_EPISODES):
                 torch.as_tensor(next_obs[agent.name], device=agent.device, dtype=torch.float32)
             ))
 
-        obs = next_obs
-        total_reward += sum(rewards.values())
-
         # Update networks after enough samples collected
         for agent in agents:
             if len(agent.replay) >= BATCH_SIZE:
                 samples = agent.replay.sample(BATCH_SIZE)
                 agent.update(samples)
                 agent.update_value(obs[agent.name], rewards[agent.name], next_obs[agent.name])
+
+        obs = next_obs
+        total_reward += sum(rewards.values())
 
     print("episode", episode, "reward:", total_reward)
     rewards_history.append(total_reward)
