@@ -7,7 +7,7 @@ import torch
 
 N_AGENTS = 4
 
-MAX_EPISODES = 100_001
+MAX_EPISODES = 500_001
 MAX_STEPS = 25
 BATCH_SIZE = 32
 
@@ -30,23 +30,16 @@ for episode in range(MAX_EPISODES):
             actions[agent.name] = action
 
         next_obs, rewards, terminations, truncations, _ = env.step(actions)
-        for agent in agents:
-            agent.replay.add((
-                torch.as_tensor(obs[agent.name], device=agent.device, dtype=torch.float32),
-                actions[agent.name],
-                rewards[agent.name],
-                torch.as_tensor(next_obs[agent.name], device=agent.device, dtype=torch.float32)
-            ))
-
-        obs = next_obs
-        total_reward += sum(rewards.values())
 
         # Update networks after enough samples collected
         for agent in agents:
-            if len(agent.replay) >= BATCH_SIZE:
-                samples = agent.replay.sample(BATCH_SIZE)
-                agent.update(samples)
-                agent.update_value(obs[agent.name], rewards[agent.name], next_obs[agent.name])
+            state = torch.as_tensor(obs[agent.name], device=agent.device, dtype=torch.float32)
+            next_state = torch.as_tensor(next_obs[agent.name], device=agent.device, dtype=torch.float32)
+            agent.update(state, actions[agent.name], rewards[agent.name], next_state)
+            agent.update_value(state, rewards[agent.name], next_state)
+
+        obs = next_obs
+        total_reward += sum(rewards.values())
 
     print("episode", episode, "reward:", total_reward)
     rewards_history.append(total_reward)
@@ -59,11 +52,11 @@ for episode in range(MAX_EPISODES):
         plt.plot(range(100, len(rolling_avg) + 100), rolling_avg, c='red')
         ax = plt.gca()
         ax.set_ylim([None, 0])
-        plt.savefig(f"mb{N_AGENTS}agents.png")
+        plt.savefig(f"mb{N_AGENTS}agents_no_replay_target.png")
 
     if (episode + 1) % 500 == 0:
         # saving data for later
-        torch.save(rewards_history, f'mb_rewards_history{N_AGENTS}agents.pth')
+        torch.save(rewards_history, f'mb_rewards_history_no_replay_target{N_AGENTS}.pth')
     if episode % 10_000 == 0:
         for agent in agents:
             agent.save_model(f"model_based/saved_models{N_AGENTS}/ep"+str(episode)+"/")
