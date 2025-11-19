@@ -31,7 +31,7 @@ class MBAgent:
         self.value_optimizer = optim.Adam(self.value_network.parameters(), lr=0.0001)
         self.environment_optimizer = optim.Adam(self.environment_model.parameters(), lr=0.0001)
 
-        self.replay = ReplayBuffer(1000)
+        self.replay = ReplayBuffer()
         self.steps_done = 0
 
     def act(self, obs, explore=True):

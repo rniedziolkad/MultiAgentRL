@@ -7,7 +7,7 @@ import torch
 
 N_AGENTS = 4
 
-MAX_EPISODES = 100_001
+MAX_EPISODES = 500_001
 MAX_STEPS = 25
 BATCH_SIZE = 32
 
@@ -59,11 +59,11 @@ for episode in range(MAX_EPISODES):
         plt.plot(range(100, len(rolling_avg) + 100), rolling_avg, c='red')
         ax = plt.gca()
         ax.set_ylim([None, 0])
-        plt.savefig(f"mb_replay1000_target{N_AGENTS}.png")
+        plt.savefig(f"mb_replay_target{N_AGENTS}.png")
 
     if (episode + 1) % 500 == 0:
         # saving data for later
-        torch.save(rewards_history, f'mb_rewards_history_replay1000_target{N_AGENTS}.pth')
+        torch.save(rewards_history, f'mb_rewards_history_replay_target{N_AGENTS}.pth')
     if episode % 10_000 == 0:
         for agent in agents:
             agent.save_model(f"model_based/saved_models{N_AGENTS}/ep"+str(episode)+"/")
