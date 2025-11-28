@@ -23,8 +23,8 @@ class MBAgent:
         self.device = torch.device("cpu")
 
         self.value_network = ValueNetwork(obs_dim).to(self.device)
-        self.value_target = ValueNetwork(obs_dim).to(self.device)
-        self.value_target.load_state_dict(self.value_network.state_dict())
+        # self.value_target = ValueNetwork(obs_dim).to(self.device)
+        # self.value_target.load_state_dict(self.value_network.state_dict())
 
         self.environment_model = EnvironmentModel(obs_dim, act_dim).to(self.device)
 
@@ -79,7 +79,7 @@ class MBAgent:
         # ======== Value Network Update ========
         state_value = self.value_network(obs)
         with torch.no_grad():
-            next_state_value = self.value_target(next_state)
+            next_state_value = self.value_network(next_state)
             target_state_value = self.gamma * next_state_value + reward
 
         states_values_loss = F.mse_loss(state_value, target_state_value)
@@ -87,11 +87,11 @@ class MBAgent:
         states_values_loss.backward()
         self.value_optimizer.step()
         # target network soft update
-        self._soft_update(self.value_target, self.value_network)
+        # self._soft_update(self.value_target, self.value_network)
 
-    def _soft_update(self, target, source):
-        for t, s in zip(target.parameters(), source.parameters()):
-            t.data.copy_(self.tau * s.data + (1 - self.tau) * t.data)
+    # def _soft_update(self, target, source):
+    #     for t, s in zip(target.parameters(), source.parameters()):
+    #         t.data.copy_(self.tau * s.data + (1 - self.tau) * t.data)
 
     def __repr__(self):
         return self.name + "[obs: " + str(self.obs_dim) + " act: " + str(self.act_dim) + "]"

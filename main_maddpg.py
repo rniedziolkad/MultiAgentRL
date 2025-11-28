@@ -7,7 +7,7 @@ import torch
 
 N_AGENTS = 4
 
-MAX_EPISODES = 100_001
+MAX_EPISODES = 1_000_001
 MAX_STEPS = 25
 BATCH_SIZE = 32
 
@@ -15,6 +15,9 @@ env = simple_spread_v3.parallel_env(N=N_AGENTS, max_cycles=MAX_STEPS, render_mod
 env.reset(seed=42)
 agents = [MADDPGAgent(name, env.observation_space(name).shape[0], env.action_space(name).n, n_agents=N_AGENTS)
           for name in env.agents]
+
+for i, agent in enumerate(agents):
+    agent.index = i
 
 print(agents)
 replay_buffer = ReplayBuffer()
@@ -31,7 +34,7 @@ for episode in range(MAX_EPISODES):
             actions[agent.name] = action
 
         next_obs, rewards, terminations, truncations, _ = env.step(actions)
-        replay_buffer.add((obs, actions, rewards, next_obs))
+        replay_buffer.add(obs, actions, rewards, next_obs)
 
         obs = next_obs
         total_reward += sum(rewards.values())
@@ -44,7 +47,7 @@ for episode in range(MAX_EPISODES):
 
     print("episode", episode, "reward:", total_reward)
     rewards_history.append(total_reward)
-    if (episode + 1) % 50 == 0:
+    if (episode + 1) % 100 == 0:
         # plotting rolling avg rewards of agent 0
         avg_rewards = np.sum(rewards_history[-100:]) / len(rewards_history[-100:])
         plt.clf()

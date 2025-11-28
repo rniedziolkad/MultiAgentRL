@@ -8,14 +8,15 @@ import random
 
 
 class MADDPGAgent:
-    def __init__(self, name, obs_dim, act_dim, n_agents, gamma=0.95, tau=0.001):
+    def __init__(self, name, obs_dim, act_dim, n_agents, gamma=0.95, tau=0.002):
         self.name = name
         self.obs_dim = obs_dim
         self.act_dim = act_dim
         self.n_agents = n_agents
         self.gamma = gamma
         self.tau = tau
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cpu")
+        # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.actor = Actor(obs_dim, act_dim).to(self.device)
         self.actor_target = Actor(obs_dim, act_dim).to(self.device)
@@ -30,8 +31,8 @@ class MADDPGAgent:
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=0.0001)
 
     def act(self, obs, explore=True):
-        with torch.no_grad():
-            obs_tensor = torch.tensor(np.array(obs), device=self.device)
+        with torch.inference_mode():
+            obs_tensor = torch.as_tensor(obs, dtype = torch.float32, device=self.device)
             logits = self.actor(obs_tensor)
             # probs = F.gumbel_softmax(logits, tau=0.05, hard=True)
             # return torch.argmax(probs).item()
@@ -46,9 +47,6 @@ class MADDPGAgent:
     def update(self, samples, all_agents):
         states, actions, rewards, next_states = samples
 
-        batch_size = len(states)
-        device = self.device
-
         # ======== Critic Update =========
         # Build next actions for all agents using target actors
         # For each agent, batch next_states and get target_actions from target actor
@@ -57,15 +55,12 @@ class MADDPGAgent:
 
         for agent in all_agents:
             # batch next states for this agent: [batch_size, obs_dim]
-            agent_next_states = torch.tensor(
-                np.array([next_states[i][agent.name] for i in range(batch_size)]),
-                device=device, dtype=torch.float32
-            )
+            agent_next_states = torch.tensor(next_states[:, agent.index, :], device=agent.device)
             with torch.no_grad():
                 logits = agent.actor_target(agent_next_states)
-                action = F.gumbel_softmax(logits, tau=0.05, hard=True)
+                action = F.softmax(logits, dim=-1)
+            
             target_actions.append(action)
-
             # batch states for concatenation
             next_states_list.append(agent_next_states)
 
@@ -75,10 +70,10 @@ class MADDPGAgent:
 
         # Compute target Q values
         target_actions_concat = target_actions_concat.view(target_actions_concat.size(0), -1)
-        critic_target_input = torch.cat([next_states_concat, target_actions_concat], dim=1)
         with torch.no_grad():
+            critic_target_input = torch.cat([next_states_concat, target_actions_concat], dim=1)
             target_q = self.critic_target(critic_target_input)
-            reward = torch.tensor([r[self.name] for r in rewards], device=device, dtype=torch.float32).unsqueeze(1)
+            reward = torch.tensor(rewards[:, agent.index], device=agent.device).unsqueeze(1)
             update_target = reward + self.gamma * target_q
 
         # Build current critic input
@@ -86,15 +81,10 @@ class MADDPGAgent:
         actions_list = []
 
         for agent in all_agents:
-            agent_states = torch.tensor(
-                np.array([states[i][agent.name] for i in range(batch_size)]),
-                device=device, dtype=torch.float32
-            )
-            agent_actions = torch.tensor(
-                np.array([actions[i][agent.name] for i in range(batch_size)]),
-                device=device, dtype=torch.long
-            )
+            agent_states = torch.tensor(states[:, agent.index, :], device=agent.device)
+            agent_actions = torch.tensor(actions[:, agent.index], device=agent.device, dtype=torch.long)
             agent_actions_onehot = F.one_hot(agent_actions, self.act_dim).float()
+
             states_list.append(agent_states)
             actions_list.append(agent_actions_onehot)
 
@@ -110,11 +100,7 @@ class MADDPGAgent:
         self.critic_optimizer.step()
 
         # ======== Actor Update =========
-        agent_obs = torch.tensor(
-            np.array([s[self.name] for s in states]),
-            device=device,
-            dtype=torch.float32
-        )
+        agent_obs = torch.as_tensor(states[:, self.index, :], device=self.device, dtype=torch.float32)
         action_logits = self.actor(agent_obs)
         agent_actions = F.gumbel_softmax(action_logits, tau=1.0, hard=True)
 
@@ -124,11 +110,7 @@ class MADDPGAgent:
             if agent.name == self.name:
                 actions_for_actor.append(agent_actions)
             else:
-                other_actions = torch.tensor(
-                    np.array([actions[i][agent.name] for i in range(batch_size)]),
-                    device=device,
-                    dtype=torch.long
-                )
+                other_actions = torch.as_tensor(actions[:, agent.index], device=agent.device, dtype=torch.long)
                 other_actions_onehot = F.one_hot(other_actions, self.act_dim).float()
                 actions_for_actor.append(other_actions_onehot)
 
@@ -141,7 +123,7 @@ class MADDPGAgent:
         actor_loss.backward()
         self.actor_optimizer.step()
 
-        if random.randint(1, 200) == 1:
+        if random.randint(1, 1000) == 1:
             print(self.name + " critic loss:", critic_loss)
             print(self.name + " actor loss:", actor_loss)
         # ======== Target Network Soft Updates =========

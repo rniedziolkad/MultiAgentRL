@@ -1,13 +1,12 @@
 from pettingzoo.mpe import simple_spread_v3
 from model_based.agent import MBAgent
-from model_based.replay_buffer import ReplayBuffer
 import numpy as np
 from matplotlib import pyplot as plt
 import torch
 
 N_AGENTS = 4
 
-MAX_EPISODES = 500_001
+MAX_EPISODES = 1_000_001
 MAX_STEPS = 25
 BATCH_SIZE = 32
 
@@ -59,11 +58,11 @@ for episode in range(MAX_EPISODES):
         plt.plot(range(100, len(rolling_avg) + 100), rolling_avg, c='red')
         ax = plt.gca()
         ax.set_ylim([None, 0])
-        plt.savefig(f"mb_replay_target{N_AGENTS}.png")
+        plt.savefig(f"mb_no-target{N_AGENTS}.png")
 
     if (episode + 1) % 500 == 0:
         # saving data for later
-        torch.save(rewards_history, f'mb_rewards_history_replay_target{N_AGENTS}.pth')
+        torch.save(rewards_history, f'mb_rewards_history_no-target{N_AGENTS}.pth')
     if episode % 10_000 == 0:
         for agent in agents:
             agent.save_model(f"model_based/saved_models{N_AGENTS}/ep"+str(episode)+"/")
