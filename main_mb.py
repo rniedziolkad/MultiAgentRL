@@ -32,8 +32,8 @@ for episode in range(MAX_EPISODES):
         for agent in agents:
             agent.replay.add((
                 torch.as_tensor(obs[agent.name], device=agent.device, dtype=torch.float32),
-                actions[agent.name],
-                rewards[agent.name],
+                torch.tensor(actions[agent.name], device=agent.device, dtype=torch.long),
+                torch.tensor(rewards[agent.name], device=agent.device, dtype=torch.float32),
                 torch.as_tensor(next_obs[agent.name], device=agent.device, dtype=torch.float32)
             ))
 
@@ -58,11 +58,11 @@ for episode in range(MAX_EPISODES):
         plt.plot(range(100, len(rolling_avg) + 100), rolling_avg, c='red')
         ax = plt.gca()
         ax.set_ylim([None, 0])
-        plt.savefig(f"mb_no-target{N_AGENTS}.png")
+        plt.savefig(f"mb_no-target{N_AGENTS}agents.png")
 
     if (episode + 1) % 500 == 0:
         # saving data for later
-        torch.save(rewards_history, f'mb_rewards_history_no-target{N_AGENTS}.pth')
+        torch.save(rewards_history, f'mb_rewards_history_no-target{N_AGENTS}agents.pth')
     if episode % 10_000 == 0:
         for agent in agents:
             agent.save_model(f"model_based/saved_models{N_AGENTS}/ep"+str(episode)+"/")

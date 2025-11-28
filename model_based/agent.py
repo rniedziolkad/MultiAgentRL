@@ -52,10 +52,6 @@ class MBAgent:
     def update(self, samples):
         states, actions, rewards, next_states = samples
 
-        states = torch.stack(states)
-        actions = torch.as_tensor(actions, device=self.device, dtype=torch.int64)
-        rewards = torch.as_tensor(rewards, device=self.device, dtype=torch.float32)
-        next_states = torch.stack(next_states)
         # ======== Environment Model update ========
 
         pred_next_states, pred_rewards = self.environment_model(states)
