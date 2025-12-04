@@ -49,7 +49,7 @@ for episode in range(MAX_EPISODES):
 
     print("episode", episode, "reward:", total_reward)
     rewards_history.append(total_reward)
-    if (episode + 1) % 100 == 0:
+    if (episode + 1) % 500 == 0:
         # plotting rolling avg rewards of agent 0
         avg_rewards = np.sum(rewards_history[-100:]) / len(rewards_history[-100:])
         plt.clf()
@@ -59,8 +59,6 @@ for episode in range(MAX_EPISODES):
         ax = plt.gca()
         ax.set_ylim([None, 0])
         plt.savefig(f"mb_no-target{N_AGENTS}agents.png")
-
-    if (episode + 1) % 500 == 0:
         # saving data for later
         torch.save(rewards_history, f'mb_rewards_history_no-target{N_AGENTS}agents.pth')
     if episode % 10_000 == 0:
