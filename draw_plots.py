@@ -2,9 +2,10 @@ import torch
 import matplotlib.pyplot as plt
 import pandas as pd
 
-window_size = 5000
+window_size = 5_000
 maddpg_reward_history = torch.load('maddpg_rewards_history4agents.pth')
 mb_reward_history = torch.load('mb_rewards_history_no-target4agents.pth')
+mb_reward_history2 = torch.load('mb_rewards_history_replay_no-target4.pth')
 dqn_reward_history = torch.load("dqn_rewards_history4agents.pth")
 
 maddpg_reward_series0 = pd.Series(maddpg_reward_history)
@@ -16,10 +17,13 @@ dqn_rolling_average0 = dqn_reward_series0.rolling(window=window_size).mean()
 mb_reward_series0 = pd.Series(mb_reward_history)
 mb_rolling_average0 = mb_reward_series0.rolling(window=window_size).mean()
 
+mb2_reward_series0 = pd.Series(mb_reward_history2)
+mb2_rolling_average0 = mb2_reward_series0.rolling(window=window_size).mean()
 
 plt.plot(maddpg_rolling_average0, label="MADDPG")
 plt.plot(dqn_rolling_average0, label="DQN")
 plt.plot(mb_rolling_average0, label="MB")
+plt.plot(mb2_rolling_average0, label="MB2")
 
 plt.xlabel('Episode')
 plt.ylabel('Average Total Reward')
