@@ -9,11 +9,10 @@ import torch.nn.functional as F
 
 
 class MBAgent:
-    def __init__(self, name, obs_dim, act_dim, n_agents, gamma=0.95, eps_start=0.99, eps_end=0.05, eps_decay=1000, tau=0.002):
+    def __init__(self, name, obs_dim, act_dim, gamma=0.95, eps_start=0.99, eps_end=0.05, eps_decay=1000, tau=0.002):
         self.name = name
         self.obs_dim = obs_dim
         self.act_dim = act_dim
-        self.n_agents = n_agents
         self.gamma = gamma
         self.eps_start = eps_start
         self.eps_end = eps_end
