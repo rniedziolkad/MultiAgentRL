@@ -30,7 +30,12 @@ for episode in range(MAX_EPISODES):
 
         next_obs, rewards, terminations, truncations, _ = env.step(actions)
         for agent in agents:
-            agent.replay.add((obs[agent.name], actions[agent.name], rewards[agent.name], next_obs[agent.name]))
+            agent.replay.add((
+                torch.as_tensor(obs[agent.name], device=agent.device, dtype=torch.float32),
+                torch.tensor(actions[agent.name], device=agent.device, dtype=torch.long),
+                torch.tensor(rewards[agent.name], device=agent.device, dtype=torch.float32), 
+                torch.as_tensor(next_obs[agent.name], device=agent.device, dtype=torch.float32)
+            ))
 
         obs = next_obs
         total_reward += sum(rewards.values())
@@ -43,7 +48,7 @@ for episode in range(MAX_EPISODES):
 
     print("episode", episode, "reward:", total_reward)
     rewards_history.append(total_reward)
-    if (episode + 1) % 50 == 0:
+    if (episode + 1) % 500 == 0:
         # plotting rolling avg rewards of agent 0
         avg_rewards = np.sum(rewards_history[-100:]) / len(rewards_history[-100:])
         plt.clf()
@@ -53,8 +58,6 @@ for episode in range(MAX_EPISODES):
         ax = plt.gca()
         ax.set_ylim([None, 0])
         plt.savefig(f"dqn{N_AGENTS}agents.png")
-
-    if (episode + 1) % 500 == 0:
         # saving data for later
         torch.save(rewards_history, f'dqn_rewards_history{N_AGENTS}agents.pth')
     if episode % 10_000 == 0:

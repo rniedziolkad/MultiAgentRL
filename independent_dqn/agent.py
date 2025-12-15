@@ -9,7 +9,7 @@ from independent_dqn.replay_buffer import ReplayBuffer
 
 
 class DQNAgent:
-    def __init__(self, name, obs_dim, act_dim, gamma=0.95, tau=0.001, eps_start=0.99, eps_end=0.05, eps_decay=1000):
+    def __init__(self, name, obs_dim, act_dim, gamma=0.95, tau=0.002, eps_start=0.99, eps_end=0.05, eps_decay=1000):
         self.name = name
         self.obs_dim = obs_dim
         self.act_dim = act_dim
@@ -19,7 +19,7 @@ class DQNAgent:
         self.eps_end = eps_end
         self.eps_decay = eps_decay
         self.steps_done = 0
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cpu")
 
         self.network = DQN(obs_dim, act_dim).to(self.device)
         self.network_target = DQN(obs_dim, act_dim).to(self.device)
@@ -43,17 +43,11 @@ class DQNAgent:
 
     def update(self, samples):
         states, actions, rewards, next_states = samples
-
         # ======== DQN update ========
         # compute current qvalues
-        states = torch.tensor(np.array(states), device=self.device, dtype=torch.float32)
-        actions = torch.tensor(np.array(actions), device=self.device, dtype=torch.int64).unsqueeze(1)
-
         q_values = self.network(states).gather(dim=1, index=actions)
 
         # compute target q values
-        next_states = torch.tensor(np.array(next_states), device=self.device, dtype=torch.float32)
-        rewards = torch.tensor(np.array(rewards), device=self.device, dtype=torch.float32).unsqueeze(1)
         with torch.no_grad():
             max_next_q_values = self.network_target(next_states).max(1, keepdim=True)[0]
             target_q_values = rewards + self.gamma * max_next_q_values
