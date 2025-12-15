@@ -45,12 +45,12 @@ class DQNAgent:
         states, actions, rewards, next_states = samples
         # ======== DQN update ========
         # compute current qvalues
-        q_values = self.network(states).gather(dim=1, index=actions)
+        q_values = self.network(states).gather(dim=1, index=actions.unsqueeze(-1))
 
         # compute target q values
         with torch.no_grad():
             max_next_q_values = self.network_target(next_states).max(1, keepdim=True)[0]
-            target_q_values = rewards + self.gamma * max_next_q_values
+            target_q_values = rewards.unsqueeze(-1) + self.gamma * max_next_q_values
 
         # compute loss and optimize model
         loss = F.mse_loss(q_values, target_q_values)
