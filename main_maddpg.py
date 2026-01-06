@@ -13,17 +13,31 @@ BATCH_SIZE = 32
 
 env = simple_spread_v3.parallel_env(N=N_AGENTS, max_cycles=MAX_STEPS, render_mode="none")
 env.reset(seed=42)
+
+rewards_history_file = f'maddpg_rewards_history{N_AGENTS}agents.pth'
+START_EPISODE = 590000
+saved_model_folder = f"maddpg/saved_models{N_AGENTS}"
+
 agents = [MADDPGAgent(name, env.observation_space(name).shape[0], env.action_space(name).n, n_agents=N_AGENTS)
           for name in env.agents]
 
 for i, agent in enumerate(agents):
     agent.index = i
+    if START_EPISODE != 0:
+        agent.load_model(saved_model_folder + "/ep"+str(START_EPISODE)+"/")
 
 print(agents)
-replay_buffer = ReplayBuffer()
-rewards_history = []
 
-for episode in range(MAX_EPISODES):
+replay_buffer = ReplayBuffer()
+if START_EPISODE != 0:
+    rewards_history = torch.load(rewards_history_file)
+    rewards_history = rewards_history[:START_EPISODE + 1]
+    print("Rewards history: ", len(rewards_history), rewards_history[-3:])
+else:
+    rewards_history = []
+
+
+for episode in range(START_EPISODE + 1, MAX_EPISODES):
     obs, _ = env.reset()
     total_reward = 0
 
@@ -60,9 +74,9 @@ for episode in range(MAX_EPISODES):
 
     if (episode + 1) % 500 == 0:
         # saving data for later
-        torch.save(rewards_history, f'maddpg_rewards_history{N_AGENTS}agents.pth')
+        torch.save(rewards_history, rewards_history_file)
     if episode % 10_000 == 0:
         for agent in agents:
-            agent.save_model(f"maddpg/saved_models{N_AGENTS}/ep"+str(episode)+"/")
+            agent.save_model(saved_model_folder + "/ep"+str(episode)+"/")
 
 env.close()

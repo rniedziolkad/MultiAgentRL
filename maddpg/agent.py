@@ -144,6 +144,7 @@ class MADDPGAgent:
 
     def load_model(self, dir_path):
         self.actor.load_state_dict(torch.load(dir_path+self.name+"_actor.pth"))
-        self.critic.load_state_dict(torch.load(dir_path+self.name+"+_critic.pth"))
+        self.critic.load_state_dict(torch.load(dir_path+self.name+"_critic.pth"))
         self.actor_target.load_state_dict(self.actor.state_dict())
         self.critic_target.load_state_dict(self.critic.state_dict())
+        print("Loaded models for: " + self.name)
