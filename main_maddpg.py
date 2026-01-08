@@ -15,7 +15,7 @@ env = simple_spread_v3.parallel_env(N=N_AGENTS, max_cycles=MAX_STEPS, render_mod
 env.reset(seed=42)
 
 rewards_history_file = f'maddpg_rewards_history{N_AGENTS}agents.pth'
-START_EPISODE = 590000
+START_EPISODE = 680000
 saved_model_folder = f"maddpg/saved_models{N_AGENTS}"
 
 agents = [MADDPGAgent(name, env.observation_space(name).shape[0], env.action_space(name).n, n_agents=N_AGENTS)
