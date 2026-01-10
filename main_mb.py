@@ -1,5 +1,6 @@
 from pettingzoo.mpe import simple_spread_v3
 import numpy as np
+import torch
 from matplotlib import pyplot as plt
 from multiprocessing import Process, Pipe, set_start_method
 
@@ -7,7 +8,7 @@ from model_based.agent import MBAgent
 from model_based.agent_worker import agent_worker
 import time
 # ==== Config ==== #
-N_AGENTS = 6
+N_AGENTS = 4
 MAX_EPISODES = 1_000_001
 MAX_STEPS = 25
 BATCH_SIZE = 32
@@ -17,7 +18,7 @@ BATCH_SIZE = 32
 def main():
     set_start_method("spawn", force=True)
     # --- Environment ---
-    env = simple_spread_v3.parallel_env( N=N_AGENTS, max_cycles=MAX_STEPS, render_mode="none")
+    env = simple_spread_v3.parallel_env(N=N_AGENTS, max_cycles=MAX_STEPS, render_mode="none")
     env.reset(seed=42)
 
     agent_conns = {}
@@ -53,28 +54,25 @@ def main():
         obs, _ = env.reset()
         total_reward = 0
         t0 = time.perf_counter()
+        prev_obs = None
 
         for step in range(MAX_STEPS):
             for name, conn in agent_conns.items():
-                conn.send({"cmd": "act", "obs": obs[name]})
-
-            actions = {
-                name: conn.recv()
-                for name, conn in agent_conns.items()
-            }
-
-            next_obs, rewards, terminations, truncations, _ = env.step(actions)
-            for name, conn in agent_conns.items():
                 conn.send({
-                    "cmd": "store_and_update",
+                    "cmd": "step",
+                    "obs": obs[name],
                     "transition": (
-                        np.array(obs[name], dtype=np.float32),
+                        np.array(prev_obs[name], dtype=np.float32),
                         actions[name],
                         rewards[name],
-                        np.array(next_obs[name], dtype=np.float32),
-                    ),
+                        np.array(obs[name], dtype=np.float32),
+                    ) if prev_obs is not None else None
                 })
 
+            actions = {name: conn.recv() for name, conn in agent_conns.items()}
+            next_obs, rewards, terminations, truncations, _ = env.step(actions)
+
+            prev_obs = obs
             obs = next_obs
             total_reward += sum(rewards.values())
 
@@ -90,9 +88,9 @@ def main():
             plt.plot(range(100, len(rolling_avg) + 100), rolling_avg, c='red')
             ax = plt.gca()
             ax.set_ylim([None, 0])
-            plt.savefig(f"mb{N_AGENTS}agents.png")
+            plt.savefig(f"mb_par{N_AGENTS}agents.png")
             # saving data for later
-            torch.save(rewards_history, f'mb_rewards_history{N_AGENTS}agents.pth')
+            torch.save(rewards_history, f'mb_rewards_history_par{N_AGENTS}agents.pth')
         if episode % 10_000 == 0:
             for name, conn in agent_conns.items():
                 conn.send({
