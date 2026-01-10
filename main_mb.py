@@ -1,68 +1,116 @@
 from pettingzoo.mpe import simple_spread_v3
-from model_based.agent import MBAgent
 import numpy as np
-from matplotlib import pyplot as plt
 import torch
+from matplotlib import pyplot as plt
+from multiprocessing import Process, Pipe, set_start_method
 
-N_AGENTS = 4
-
+from model_based.agent import MBAgent
+from model_based.agent_worker import agent_worker
+import time
+# ==== Config ==== #
+N_AGENTS = 6
 MAX_EPISODES = 1_000_001
 MAX_STEPS = 25
 BATCH_SIZE = 32
+# ================ #
 
-env = simple_spread_v3.parallel_env(N=N_AGENTS, max_cycles=MAX_STEPS, render_mode="none")
-env.reset(seed=42)
-agents = [MBAgent(name, env.observation_space(name).shape[0], env.action_space(name).n, eps_end=0.0001, eps_decay=10000)
-          for name in env.agents]
 
-print(agents)
-print("cuda" if torch.cuda.is_available() else "cpu")
-rewards_history = []
-for episode in range(MAX_EPISODES):
-    obs, _ = env.reset()
-    total_reward = 0
+def main():
+    set_start_method("spawn", force=True)
+    # --- Environment ---
+    env = simple_spread_v3.parallel_env( N=N_AGENTS, max_cycles=MAX_STEPS, render_mode="none")
+    env.reset(seed=42)
 
-    for step in range(MAX_STEPS):
-        actions = {}
-        for agent in agents:
-            action = agent.act(obs[agent.name])
-            actions[agent.name] = action
+    agent_conns = {}
+    agent_procs = {}
 
-        next_obs, rewards, terminations, truncations, _ = env.step(actions)
-        for agent in agents:
-            agent.replay.add((
-                torch.as_tensor(obs[agent.name], device=agent.device, dtype=torch.float32),
-                torch.tensor(actions[agent.name], device=agent.device, dtype=torch.long),
-                torch.tensor(rewards[agent.name], device=agent.device, dtype=torch.float32),
-                torch.as_tensor(next_obs[agent.name], device=agent.device, dtype=torch.float32)
-            ))
+    for name in env.agents:
+        parent_conn, child_conn = Pipe()
 
-        # Update networks after enough samples collected
-        for agent in agents:
-            if len(agent.replay) >= BATCH_SIZE:
-                samples = agent.replay.sample(BATCH_SIZE)
-                agent.update(samples)
-                agent.update_value(obs[agent.name], rewards[agent.name], next_obs[agent.name])
+        p = Process(
+            target=agent_worker,
+            args=(
+                MBAgent,
+                dict(
+                    name=name,
+                    obs_dim=env.observation_space(name).shape[0],
+                    act_dim=env.action_space(name).n,
+                    eps_end=0.0001,
+                    eps_decay=10000,
+                ),
+                child_conn,
+                BATCH_SIZE,
+            ),
+        )
 
-        obs = next_obs
-        total_reward += sum(rewards.values())
+        p.start()
+        agent_conns[name] = parent_conn
+        agent_procs[name] = p
 
-    print("episode", episode, "reward:", total_reward)
-    rewards_history.append(total_reward)
-    if (episode + 1) % 500 == 0:
-        # plotting rolling avg rewards of agent 0
-        avg_rewards = np.sum(rewards_history[-100:]) / len(rewards_history[-100:])
-        plt.clf()
-        plt.scatter(range(len(rewards_history)), rewards_history)
-        rolling_avg = np.convolve(rewards_history, np.ones(100), 'valid') / 100
-        plt.plot(range(100, len(rolling_avg) + 100), rolling_avg, c='red')
-        ax = plt.gca()
-        ax.set_ylim([None, 0])
-        plt.savefig(f"mb_target{N_AGENTS}agents.png")
-        # saving data for later
-        torch.save(rewards_history, f'mb_rewards_history_target{N_AGENTS}agents.pth')
-    if episode % 10_000 == 0:
-        for agent in agents:
-            agent.save_model(f"model_based/saved_models{N_AGENTS}/ep"+str(episode)+"/")
+    print("cpu")
+    print("Agents' processes: ", agent_procs)
+    rewards_history = []
+    for episode in range(MAX_EPISODES):
+        obs, _ = env.reset()
+        total_reward = 0
+        t0 = time.perf_counter()
 
-env.close()
+        for step in range(MAX_STEPS):
+            for name, conn in agent_conns.items():
+                conn.send({"cmd": "act", "obs": obs[name]})
+
+            actions = {
+                name: conn.recv()
+                for name, conn in agent_conns.items()
+            }
+
+            next_obs, rewards, terminations, truncations, _ = env.step(actions)
+            for name, conn in agent_conns.items():
+                conn.send({
+                    "cmd": "store_and_update",
+                    "transition": (
+                        torch.as_tensor(obs[name], dtype=torch.float32),
+                        torch.tensor(actions[name], dtype=torch.long),
+                        torch.tensor(rewards[name], dtype=torch.float32),
+                        torch.as_tensor(next_obs[name], dtype=torch.float32),
+                    ),
+                })
+
+            obs = next_obs
+            total_reward += sum(rewards.values())
+
+        print("episode", episode, "reward:", total_reward)
+        t1 = time.perf_counter()
+        print("time: ", t1 - t0)
+        rewards_history.append(total_reward)
+        if (episode + 1) % 500 == 0:
+            # plotting rolling avg rewards of agent 0
+            plt.clf()
+            plt.scatter(range(len(rewards_history)), rewards_history)
+            rolling_avg = np.convolve(rewards_history, np.ones(100), 'valid') / 100
+            plt.plot(range(100, len(rolling_avg) + 100), rolling_avg, c='red')
+            ax = plt.gca()
+            ax.set_ylim([None, 0])
+            plt.savefig(f"mb{N_AGENTS}agents.png")
+            # saving data for later
+            torch.save(rewards_history, f'mb_rewards_history{N_AGENTS}agents.pth')
+        if episode % 10_000 == 0:
+            for name, conn in agent_conns.items():
+                conn.send({
+                    "cmd": "save",
+                    "path": f"model_based/saved_models{N_AGENTS}/ep{episode}/",
+                })
+
+    # ---- Shutdown ----
+    for conn in agent_conns.values():
+        conn.send({"cmd": "close"})
+
+    for p in agent_procs.values():
+        p.join()
+
+    env.close()
+
+
+if __name__ == "__main__":
+    main()
+
