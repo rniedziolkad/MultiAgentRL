@@ -1,6 +1,5 @@
 from pettingzoo.mpe import simple_spread_v3
 import numpy as np
-import torch
 from matplotlib import pyplot as plt
 from multiprocessing import Process, Pipe, set_start_method
 
@@ -69,10 +68,10 @@ def main():
                 conn.send({
                     "cmd": "store_and_update",
                     "transition": (
-                        torch.as_tensor(obs[name], dtype=torch.float32),
-                        torch.tensor(actions[name], dtype=torch.long),
-                        torch.tensor(rewards[name], dtype=torch.float32),
-                        torch.as_tensor(next_obs[name], dtype=torch.float32),
+                        np.array(obs[name], dtype=np.float32),
+                        actions[name],
+                        rewards[name],
+                        np.array(next_obs[name], dtype=np.float32),
                     ),
                 })
 
