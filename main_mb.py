@@ -3,8 +3,9 @@ from model_based.agent import MBAgent
 import numpy as np
 from matplotlib import pyplot as plt
 import torch
+import time
 
-N_AGENTS = 4
+N_AGENTS = 9
 
 MAX_EPISODES = 1_000_001
 MAX_STEPS = 25
@@ -21,6 +22,7 @@ rewards_history = []
 for episode in range(MAX_EPISODES):
     obs, _ = env.reset()
     total_reward = 0
+    t0 = time.perf_counter()
 
     for step in range(MAX_STEPS):
         actions = {}
@@ -48,6 +50,8 @@ for episode in range(MAX_EPISODES):
         total_reward += sum(rewards.values())
 
     print("episode", episode, "reward:", total_reward)
+    t1 = time.perf_counter()
+    print("time:", t1 - t0)
     rewards_history.append(total_reward)
     if (episode + 1) % 500 == 0:
         # plotting rolling avg rewards of agent 0
