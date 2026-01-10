@@ -9,11 +9,10 @@ import torch.nn.functional as F
 
 
 class MBAgent:
-    def __init__(self, name, obs_dim, act_dim, n_agents, gamma=0.95, eps_start=0.99, eps_end=0.05, eps_decay=1000, tau=0.002):
+    def __init__(self, name, obs_dim, act_dim, gamma=0.95, eps_start=0.99, eps_end=0.05, eps_decay=1000, tau=0.002):
         self.name = name
         self.obs_dim = obs_dim
         self.act_dim = act_dim
-        self.n_agents = n_agents
         self.gamma = gamma
         self.eps_start = eps_start
         self.eps_end = eps_end
@@ -23,8 +22,8 @@ class MBAgent:
         self.device = torch.device("cpu")
 
         self.value_network = ValueNetwork(obs_dim).to(self.device)
-        # self.value_target = ValueNetwork(obs_dim).to(self.device)
-        # self.value_target.load_state_dict(self.value_network.state_dict())
+        self.value_target = ValueNetwork(obs_dim).to(self.device)
+        self.value_target.load_state_dict(self.value_network.state_dict())
 
         self.environment_model = EnvironmentModel(obs_dim, act_dim).to(self.device)
 
@@ -52,10 +51,6 @@ class MBAgent:
     def update(self, samples):
         states, actions, rewards, next_states = samples
 
-        states = torch.stack(states)
-        actions = torch.as_tensor(actions, device=self.device, dtype=torch.int64)
-        rewards = torch.as_tensor(rewards, device=self.device, dtype=torch.float32)
-        next_states = torch.stack(next_states)
         # ======== Environment Model update ========
 
         pred_next_states, pred_rewards = self.environment_model(states)
@@ -79,7 +74,7 @@ class MBAgent:
         # ======== Value Network Update ========
         state_value = self.value_network(obs)
         with torch.no_grad():
-            next_state_value = self.value_network(next_state)
+            next_state_value = self.value_target(next_state)
             target_state_value = self.gamma * next_state_value + reward
 
         states_values_loss = F.mse_loss(state_value, target_state_value)
@@ -87,11 +82,11 @@ class MBAgent:
         states_values_loss.backward()
         self.value_optimizer.step()
         # target network soft update
-        # self._soft_update(self.value_target, self.value_network)
+        self._soft_update(self.value_target, self.value_network)
 
-    # def _soft_update(self, target, source):
-    #     for t, s in zip(target.parameters(), source.parameters()):
-    #         t.data.copy_(self.tau * s.data + (1 - self.tau) * t.data)
+    def _soft_update(self, target, source):
+        for t, s in zip(target.parameters(), source.parameters()):
+            t.data.copy_(self.tau * s.data + (1 - self.tau) * t.data)
 
     def __repr__(self):
         return self.name + "[obs: " + str(self.obs_dim) + " act: " + str(self.act_dim) + "]"

@@ -1,5 +1,6 @@
 import random
 from collections import deque
+import torch
 
 
 class ReplayBuffer:
@@ -10,13 +11,12 @@ class ReplayBuffer:
         self.buffer.append(experience)
 
     def sample(self, batch_size):
-        samples = random.sample(self.buffer, batch_size)
-        states, actions, rewards, next_states = zip(*samples)
+        states, actions, rewards, next_states = zip(*random.sample(self.buffer, batch_size))
         return (
-            states,
-            actions,
-            rewards,
-            next_states
+            torch.stack(states),
+            torch.stack(actions),
+            torch.stack(rewards),
+            torch.stack(next_states)
         )
 
     def __len__(self):
