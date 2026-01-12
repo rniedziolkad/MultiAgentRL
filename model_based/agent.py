@@ -100,3 +100,4 @@ class MBAgent:
         self.value_network.load_state_dict(torch.load(dir_path+self.name+"_value.pth"))
         self.environment_model.load_state_dict(torch.load(dir_path+self.name+"_environment.pth"))
         self.value_target.load_state_dict(self.value_network.state_dict())
+        print(self.name + ": loaded model")

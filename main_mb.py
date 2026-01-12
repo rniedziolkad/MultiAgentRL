@@ -12,6 +12,8 @@ N_AGENTS = 4
 MAX_EPISODES = 1_000_001
 MAX_STEPS = 25
 BATCH_SIZE = 32
+saved_model_path = f"model_based/saved_models{N_AGENTS}/"
+START_EPISODE = 100_000
 # ================ #
 
 
@@ -40,6 +42,8 @@ def main():
                 ),
                 child_conn,
                 BATCH_SIZE,
+                saved_model_path,
+                START_EPISODE
             ),
         )
 
@@ -50,7 +54,7 @@ def main():
     print("cpu")
     print("Agents' processes: ", agent_procs)
     rewards_history = []
-    for episode in range(MAX_EPISODES):
+    for episode in range(START_EPISODE+1, MAX_EPISODES):
         obs, _ = env.reset()
         total_reward = 0
         t0 = time.perf_counter()
@@ -95,7 +99,7 @@ def main():
             for name, conn in agent_conns.items():
                 conn.send({
                     "cmd": "save",
-                    "path": f"model_based/saved_models{N_AGENTS}/ep{episode}/",
+                    "path": saved_model_path + f"ep{episode}/",
                 })
 
     # ---- Shutdown ----
