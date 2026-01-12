@@ -12,6 +12,7 @@ N_AGENTS = 4
 MAX_EPISODES = 1_000_001
 MAX_STEPS = 25
 BATCH_SIZE = 32
+rewards_history_path = f'mb_rewards_history_par{N_AGENTS}agents.pth'
 saved_model_path = f"model_based/saved_models{N_AGENTS}/"
 START_EPISODE = 100_000
 # ================ #
@@ -54,6 +55,11 @@ def main():
     print("cpu")
     print("Agents' processes: ", agent_procs)
     rewards_history = []
+    if START_EPISODE != 0:
+        rewards_history = torch.load(rewards_history_path)
+        rewards_history = rewards_history[:START_EPISODE+1]
+        print("loaded rewards history", len(rewards_history), rewards_history[-3:])
+
     for episode in range(START_EPISODE+1, MAX_EPISODES):
         obs, _ = env.reset()
         total_reward = 0
@@ -93,9 +99,9 @@ def main():
             ax = plt.gca()
             ax.set_ylim([None, 0])
             plt.savefig(f"mb_par{N_AGENTS}agents.png")
-            # saving data for later
-            torch.save(rewards_history, f'mb_rewards_history_par{N_AGENTS}agents.pth')
         if episode % 10_000 == 0:
+            # saving data for later
+            torch.save(rewards_history, rewards_history_path)
             for name, conn in agent_conns.items():
                 conn.send({
                     "cmd": "save",
