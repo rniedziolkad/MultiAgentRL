@@ -14,7 +14,7 @@ MAX_STEPS = 25
 BATCH_SIZE = 32
 rewards_history_path = f'mb_rewards_history_par{N_AGENTS}agents.pth'
 saved_model_path = f"model_based/saved_models{N_AGENTS}/"
-START_EPISODE = 100_000
+START_EPISODE = 980_000
 # ================ #
 
 

@@ -9,6 +9,7 @@ def update_loop(agent, batch_size):
         if len(agent.replay) >= batch_size:
             samples = agent.replay.sample(batch_size)
             agent.update(samples)
+            time.sleep(0.001)
         else:
             time.sleep(0.01)  # tiny sleep to avoid busy-waiting
 
