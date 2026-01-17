@@ -1,4 +1,4 @@
-from pettingzoo.mpe import simple_spread_v3
+from pettingzoo.sisl import pursuit_v4
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
@@ -7,21 +7,22 @@ from multiprocessing import Process, Pipe, set_start_method
 from model_based.agent import MBAgent
 from model_based.agent_worker import agent_worker
 import time
+from functools import reduce
 # ==== Config ==== #
-N_AGENTS = 4
+N_AGENTS = 8    # 8 is default for pursuit
 MAX_EPISODES = 1_000_001
-MAX_STEPS = 25
+MAX_STEPS = 500 # 500 is default for pursuit
 BATCH_SIZE = 32
-rewards_history_path = f'mb_rewards_history_par{N_AGENTS}agents.pth'
+rewards_history_path = f'mb_rewards_history{N_AGENTS}agents-pursuit.pth'
 saved_model_path = f"model_based/saved_models{N_AGENTS}/"
-START_EPISODE = 980_000
+START_EPISODE = 0
 # ================ #
 
 
 def main():
     set_start_method("spawn", force=True)
     # --- Environment ---
-    env = simple_spread_v3.parallel_env(N=N_AGENTS, max_cycles=MAX_STEPS, render_mode="none")
+    env = pursuit_v4.parallel_env(n_pursuers=N_AGENTS, max_cycles=MAX_STEPS, render_mode="none")
     env.reset(seed=42)
 
     agent_conns = {}
@@ -29,14 +30,14 @@ def main():
 
     for name in env.agents:
         parent_conn, child_conn = Pipe()
-
+        print(name, reduce(lambda x, y: x*y, env.observation_space(name).shape))
         p = Process(
             target=agent_worker,
             args=(
                 MBAgent,
                 dict(
                     name=name,
-                    obs_dim=env.observation_space(name).shape[0],
+                    obs_dim=reduce(lambda x, y: x*y, env.observation_space(name).shape),
                     act_dim=env.action_space(name).n,
                     eps_end=0.0001,
                     eps_decay=10000,
@@ -67,10 +68,12 @@ def main():
         prev_obs = None
 
         for step in range(MAX_STEPS):
+            for name in env.agents:
+                obs[name] = obs[name].flatten()
             for name, conn in agent_conns.items():
                 conn.send({
                     "cmd": "step",
-                    "obs": obs[name],
+                    "obs": obs[name].flatten(),
                     "transition": (
                         np.array(prev_obs[name], dtype=np.float32),
                         actions[name],
