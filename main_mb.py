@@ -68,7 +68,7 @@ def main():
         prev_obs = None
 
         for step in range(MAX_STEPS):
-            for name in env.agents:
+            for name in obs.keys():
                 obs[name] = obs[name].flatten()
             for name, conn in agent_conns.items():
                 conn.send({
