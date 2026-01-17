@@ -93,7 +93,7 @@ def main():
         t1 = time.perf_counter()
         print("time: ", t1 - t0)
         rewards_history.append(total_reward)
-        if (episode + 1) % 500 == 0:
+        if (episode + 1) % 25 == 0:
             # plotting rolling avg rewards of agent 0
             plt.clf()
             plt.scatter(range(len(rewards_history)), rewards_history)
@@ -102,7 +102,7 @@ def main():
             ax = plt.gca()
             ax.set_ylim([None, 0])
             plt.savefig(f"mb_par{N_AGENTS}agents.png")
-        if episode % 10_000 == 0:
+        if episode % 500 == 0:
             # saving data for later
             torch.save(rewards_history, rewards_history_path)
             for name, conn in agent_conns.items():
