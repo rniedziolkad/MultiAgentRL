@@ -36,7 +36,7 @@ class MBAgent:
     def act(self, obs, explore=True):
         with torch.inference_mode():
             obs_tensor = torch.as_tensor(obs, device=self.device, dtype=torch.float32)
-            next_states, rewards = self.environment_model(obs_tensor)
+            next_states, rewards, finals = self.environment_model(obs_tensor)
             next_states = next_states.view(self.act_dim, self.obs_dim)
             next_states_values = self.value_network(next_states).flatten()
             if explore:
@@ -45,7 +45,7 @@ class MBAgent:
                 if np.random.random_sample() < eps:
                     return np.random.randint(0, self.act_dim)
 
-            expected_returns = self.gamma * next_states_values + rewards
+            expected_returns = self.gamma * next_states_values * (1.0 - finals) + rewards
             return torch.argmax(expected_returns).item()
 
     def update(self, samples):
@@ -60,6 +60,7 @@ class MBAgent:
         batch_idx = torch.arange(pred_next_states.size(0), device=self.device)
         pred_next_states = pred_next_states[batch_idx, actions]
         pred_rewards = pred_rewards[batch_idx, actions]
+        pred_finals = pred_finals[batch_idx, actions]
         # compute loss and optimize environment model
         next_states_loss = F.mse_loss(pred_next_states, next_states)
         rewards_loss = F.mse_loss(pred_rewards, rewards)

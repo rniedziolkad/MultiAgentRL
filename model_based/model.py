@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 
 
 class EnvironmentModel(nn.Module):
@@ -20,7 +21,7 @@ class EnvironmentModel(nn.Module):
         x = self.relu3(self.layer3(x))
         next_states = self.next_states_layer(x)
         rewards = self.reward_layer(x)
-        final = nn.functional.sigmoid(self.final_layer(x))
+        final = torch.sigmoid(self.final_layer(x))
         return next_states, rewards, final
 
 
