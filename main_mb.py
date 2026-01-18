@@ -15,7 +15,7 @@ MAX_STEPS = 500 # 500 is default for pursuit
 BATCH_SIZE = 32
 rewards_history_path = f'mb_rewards_history{N_AGENTS}agents-pursuit.pth'
 saved_model_path = f"model_based/saved_models{N_AGENTS}/"
-START_EPISODE = 0
+START_EPISODE = 1_000
 # ================ #
 
 
