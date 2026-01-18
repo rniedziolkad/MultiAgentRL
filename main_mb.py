@@ -15,7 +15,7 @@ MAX_STEPS = 500 # 500 is default for pursuit
 BATCH_SIZE = 32
 rewards_history_path = f'mb_rewards_history{N_AGENTS}agents-pursuit.pth'
 saved_model_path = f"model_based/saved_models{N_AGENTS}/"
-START_EPISODE = 0
+START_EPISODE = 500
 # ================ #
 
 
@@ -79,12 +79,12 @@ def main():
                         actions[name],
                         rewards[name],
                         np.array(obs[name], dtype=np.float32),
+                        np.array(terminations[name], dtype=np.float32)
                     ) if prev_obs is not None else None
                 })
 
             actions = {name: conn.recv() for name, conn in agent_conns.items()}
             next_obs, rewards, terminations, truncations, _ = env.step(actions)
-
             prev_obs = obs
             obs = next_obs
             total_reward += sum(rewards.values())

@@ -49,11 +49,11 @@ class MBAgent:
             return torch.argmax(expected_returns).item()
 
     def update(self, samples):
-        states, actions, rewards, next_states = samples
+        states, actions, rewards, next_states, finals = samples
 
         # ======== Environment Model update ========
 
-        pred_next_states, pred_rewards = self.environment_model(states)
+        pred_next_states, pred_rewards, pred_finals = self.environment_model(states)
         # reshape pred_next_states: (B, act_dim * obs_dim) → (B, act_dim, obs_dim)
         pred_next_states = pred_next_states.view(-1, self.act_dim, self.obs_dim)
         # gather predictions for actual actions
@@ -63,19 +63,20 @@ class MBAgent:
         # compute loss and optimize environment model
         next_states_loss = F.mse_loss(pred_next_states, next_states)
         rewards_loss = F.mse_loss(pred_rewards, rewards)
-        environment_loss = next_states_loss + rewards_loss
+        finals_loss = F.mse_loss(pred_finals, finals)
+        environment_loss = next_states_loss + rewards_loss + finals_loss
         self.environment_optimizer.zero_grad()
         environment_loss.backward()
         self.environment_optimizer.step()
 
-    def update_value(self, obs, reward, next_state):
+    def update_value(self, obs, reward, next_state, final):
         obs = torch.as_tensor(obs, device=self.device, dtype=torch.float32)
         next_state = torch.as_tensor(next_state, device=self.device, dtype=torch.float32)
         # ======== Value Network Update ========
         state_value = self.value_network(obs)
         with torch.no_grad():
             next_state_value = self.value_target(next_state)
-            target_state_value = self.gamma * next_state_value + reward
+            target_state_value = self.gamma * next_state_value * (1.0 - final) + reward
 
         states_values_loss = F.mse_loss(state_value, target_state_value)
         self.value_optimizer.zero_grad()
