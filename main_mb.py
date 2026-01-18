@@ -13,9 +13,9 @@ N_AGENTS = 8    # 8 is default for pursuit
 MAX_EPISODES = 1_000_001
 MAX_STEPS = 500 # 500 is default for pursuit
 BATCH_SIZE = 32
-rewards_history_path = f'mb_rewards_history{N_AGENTS}agents-pursuit.pth'
+rewards_history_path = f'mb_rewards_history{N_AGENTS}agents-pursuit.npy'
 saved_model_path = f"model_based/saved_models{N_AGENTS}/"
-START_EPISODE = 1_000
+START_EPISODE = 1_010
 # ================ #
 
 
@@ -57,9 +57,9 @@ def main():
     print("Agents' processes: ", agent_procs)
     rewards_history = []
     if START_EPISODE != 0:
-        rewards_history = torch.load(rewards_history_path)
-        rewards_history = rewards_history[:START_EPISODE+1]
-        print("loaded rewards history", len(rewards_history), rewards_history[-3:])
+            rewards_history = np.load(rewards_history_path).tolist()
+            rewards_history = rewards_history[:START_EPISODE+1]
+            print("loaded rewards history", len(rewards_history), rewards_history[-3:])
 
     for episode in range(START_EPISODE+1, MAX_EPISODES):
         obs, _ = env.reset()
@@ -104,7 +104,7 @@ def main():
             plt.savefig(f"mb_par{N_AGENTS}agents.png")
         if episode % 500 == 0:
             # saving data for later
-            torch.save(rewards_history, rewards_history_path)
+            np.save(rewards_history_path, rewards_history)
             for name, conn in agent_conns.items():
                 conn.send({
                     "cmd": "save",
