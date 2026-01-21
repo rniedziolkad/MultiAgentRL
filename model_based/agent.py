@@ -39,6 +39,7 @@ class MBAgent:
             next_states, rewards, finals = self.environment_model(obs_tensor)
             next_states = next_states.view(self.act_dim, self.obs_dim)
             next_states_values = self.value_network(next_states).flatten()
+            finals = torch.sigmoid(finals)
             if explore:
                 eps = self.eps_end + (self.eps_start - self.eps_end) * math.exp(-1. * self.steps_done / self.eps_decay)
                 self.steps_done += 1
@@ -64,7 +65,8 @@ class MBAgent:
         # compute loss and optimize environment model
         next_states_loss = F.mse_loss(pred_next_states, next_states)
         rewards_loss = F.mse_loss(pred_rewards, rewards)
-        finals_loss = F.mse_loss(pred_finals, finals)
+        pos_weight = torch.tensor([500.0], device=self.device)
+        finals_loss = F.binary_cross_entropy_with_logits(pred_finals, finals, pos_weight=pos_weight)
         environment_loss = next_states_loss + rewards_loss + finals_loss
         self.environment_optimizer.zero_grad()
         environment_loss.backward()
