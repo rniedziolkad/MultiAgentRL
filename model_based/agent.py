@@ -65,8 +65,8 @@ class MBAgent:
         # compute loss and optimize environment model
         next_states_loss = F.mse_loss(pred_next_states, next_states)
         rewards_loss = F.mse_loss(pred_rewards, rewards)
-        pos_weight = torch.tensor([500.0], device=self.device)
-        finals_loss = F.binary_cross_entropy_with_logits(pred_finals, finals, pos_weight=pos_weight)
+        # pos_weight = torch.tensor([250.0], device=self.device)
+        finals_loss = F.binary_cross_entropy_with_logits(pred_finals, finals)
         environment_loss = next_states_loss + rewards_loss + finals_loss
         self.environment_optimizer.zero_grad()
         environment_loss.backward()
