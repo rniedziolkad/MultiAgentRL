@@ -15,7 +15,7 @@ MAX_STEPS = 500 # 500 is default for pursuit
 BATCH_SIZE = 32
 rewards_history_path = f'mb_rewards_history{N_AGENTS}agents-pursuit.npy'
 saved_model_path = f"model_based/saved_models{N_AGENTS}/"
-START_EPISODE = 4_500
+START_EPISODE = 0
 # ================ #
 
 
@@ -40,7 +40,7 @@ def main():
                     obs_dim=reduce(lambda x, y: x*y, env.observation_space(name).shape),
                     act_dim=env.action_space(name).n,
                     eps_end=0.0001,
-                    eps_decay=10000,
+                    eps_decay=50_000,
                 ),
                 child_conn,
                 BATCH_SIZE,
@@ -57,9 +57,9 @@ def main():
     print("Agents' processes: ", agent_procs)
     rewards_history = []
     if START_EPISODE != 0:
-            rewards_history = np.load(rewards_history_path).tolist()
-            rewards_history = rewards_history[:START_EPISODE+1]
-            print("loaded rewards history", len(rewards_history), rewards_history[-3:])
+        rewards_history = np.load(rewards_history_path).tolist()
+        rewards_history = rewards_history[:START_EPISODE+1]
+        print("loaded rewards history", len(rewards_history), rewards_history[-3:])
 
     for episode in range(START_EPISODE+1, MAX_EPISODES):
         obs, _ = env.reset()
