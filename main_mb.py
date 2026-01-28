@@ -8,13 +8,14 @@ from model_based.agent import MBAgent
 from model_based.agent_worker import agent_worker
 import time
 # ==== Config ==== #
-N_AGENTS = 4
+N_AGENTS = 3                # 3 is default for Simple Spread
 MAX_EPISODES = 1_000_001
-MAX_STEPS = 25
+MAX_STEPS = 25              # 25 is default for Simple Spread
 BATCH_SIZE = 32
 rewards_history_path = f'mb_rewards_history_par{N_AGENTS}agents.pth'
 saved_model_path = f"model_based/saved_models{N_AGENTS}/"
-START_EPISODE = 980_000
+plot_path = f"mb_par{N_AGENTS}agents.png"
+START_EPISODE = 0
 # ================ #
 
 
@@ -93,12 +94,12 @@ def main():
         if (episode + 1) % 500 == 0:
             # plotting rolling avg rewards of agent 0
             plt.clf()
-            plt.scatter(range(len(rewards_history)), rewards_history)
+            plt.plot(rewards_history, '.', c ='blue')
             rolling_avg = np.convolve(rewards_history, np.ones(100), 'valid') / 100
             plt.plot(range(100, len(rolling_avg) + 100), rolling_avg, c='red')
             ax = plt.gca()
-            ax.set_ylim([None, 0])
-            plt.savefig(f"mb_par{N_AGENTS}agents.png")
+            # ax.set_ylim([None, 0])
+            plt.savefig(plot_path)
         if episode % 10_000 == 0:
             # saving data for later
             torch.save(rewards_history, rewards_history_path)
