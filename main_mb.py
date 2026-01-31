@@ -9,13 +9,14 @@ from model_based.agent_worker import agent_worker
 import time
 from functools import reduce
 # ==== Config ==== #
-N_AGENTS = 8    # 8 is default for pursuit
+N_AGENTS = 8            # 8 is default for pursuit
 MAX_EPISODES = 1_000_001
-MAX_STEPS = 500 # 500 is default for pursuit
+MAX_STEPS = 500         # 500 is default for pursuit
 BATCH_SIZE = 32
 rewards_history_path = f'mb_rewards_history{N_AGENTS}agents-pursuit.npy'
 saved_model_path = f"model_based/saved_models{N_AGENTS}/"
-START_EPISODE = 0
+plot_path = f"mb_par{N_AGENTS}agents.png"
+start_episode = -1      # -1 to start without loading models
 # ================ #
 
 
@@ -45,7 +46,7 @@ def main():
                 child_conn,
                 BATCH_SIZE,
                 saved_model_path,
-                START_EPISODE
+                start_episode
             ),
         )
 
@@ -56,36 +57,38 @@ def main():
     print("cpu")
     print("Agents' processes: ", agent_procs)
     rewards_history = []
-    if START_EPISODE != 0:
+    if start_episode >= 0:
         rewards_history = np.load(rewards_history_path).tolist()
-        rewards_history = rewards_history[:START_EPISODE+1]
+        rewards_history = rewards_history[:start_episode + 1]
         print("loaded rewards history", len(rewards_history), rewards_history[-3:])
 
-    for episode in range(START_EPISODE+1, MAX_EPISODES):
+    for episode in range(start_episode + 1, MAX_EPISODES):
+        t0 = time.perf_counter()
         obs, _ = env.reset()
         total_reward = 0
-        t0 = time.perf_counter()
-        prev_obs = None
+        for name, conn in agent_conns.items():
+            conn.send({
+                "cmd": "step",
+                "obs": obs[name].flatten(),
+                "transition": None
+            })
 
-        for step in range(MAX_STEPS):
-            for name in obs.keys():
-                obs[name] = obs[name].flatten()
+        while env.agents:
+            actions = {name: conn.recv() for name, conn in agent_conns.items()}
+            next_obs, rewards, terminations, truncations, _ = env.step(actions)
             for name, conn in agent_conns.items():
                 conn.send({
                     "cmd": "step",
                     "obs": obs[name].flatten(),
                     "transition": (
-                        np.array(prev_obs[name], dtype=np.float32),
+                        np.array(obs[name].flatten(), dtype=np.float32),
                         actions[name],
                         rewards[name],
-                        np.array(obs[name], dtype=np.float32),
-                        np.array(terminations[name], dtype=np.float32)
-                    ) if prev_obs is not None else None
+                        np.array(next_obs[name].flatten(), dtype=np.float32),
+                        np.array(terminations[name], dtype=np.float32),
+                        terminations[name] or truncations[name],
+                    )
                 })
-
-            actions = {name: conn.recv() for name, conn in agent_conns.items()}
-            next_obs, rewards, terminations, truncations, _ = env.step(actions)
-            prev_obs = obs
             obs = next_obs
             total_reward += sum(rewards.values())
 
@@ -96,12 +99,12 @@ def main():
         if (episode + 1) % 25 == 0:
             # plotting rolling avg rewards of agent 0
             plt.clf()
-            plt.scatter(range(len(rewards_history)), rewards_history)
+            plt.plot(rewards_history, '.', c='blue')
             rolling_avg = np.convolve(rewards_history, np.ones(100), 'valid') / 100
             plt.plot(range(100, len(rolling_avg) + 100), rolling_avg, c='red')
             ax = plt.gca()
-            ax.set_ylim([None, 0])
-            plt.savefig(f"mb_par{N_AGENTS}agents.png")
+            # ax.set_ylim([None, 0])
+            plt.savefig(plot_path)
         if episode % 500 == 0:
             # saving data for later
             np.save(rewards_history_path, rewards_history)

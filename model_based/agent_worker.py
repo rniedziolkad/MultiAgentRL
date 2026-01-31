@@ -1,7 +1,6 @@
 import torch
 import threading
 import time
-from queue import Queue
 
 
 def update_loop(agent, batch_size):
@@ -16,9 +15,13 @@ def update_loop(agent, batch_size):
 
 def agent_worker(agent_ctor, agent_kwargs, conn, batch_size, load_path=None, start_episode=0):
     agent = agent_ctor(**agent_kwargs)
-    if start_episode != 0:
+    if start_episode >= 0:
         agent.load_model(load_path + f"ep{start_episode}/")
         agent.steps_done = 500 * (start_episode + 1)
+
+    internal_state = torch.zeros(128)
+    next_istate = torch.zeros(128)
+    done = True
     
     threading.Thread(
         target=update_loop,
@@ -40,13 +43,19 @@ def agent_worker(agent_ctor, agent_kwargs, conn, batch_size, load_path=None, sta
                     torch.as_tensor(transition[1], dtype=torch.long, device=agent.device),
                     torch.as_tensor(transition[2], dtype=torch.float32, device=agent.device),
                     torch.as_tensor(transition[3], dtype=torch.float32, device=agent.device),
-                    torch.as_tensor(transition[4], dtype=torch.float32, device=agent.device)
+                    torch.as_tensor(transition[4], dtype=torch.float32, device=agent.device),
+                    internal_state.clone()
                 ))
-                agent.update_value(transition[0], transition[2], transition[3], transition[4])
+                if not done:
+                    agent.update_value(internal_state.clone(), transition[2], next_istate.clone(), transition[4])
 
-            # Compute action for current observation
-            action = agent.act(obs)
-            conn.send(action)
+                done = transition[5]
+                internal_state = next_istate
+
+            if transition is None or not done:
+                # Compute action for current observation
+                action, next_istate = agent.act(obs, internal_state)
+                conn.send(action)
 
         elif msg["cmd"] == "save":
             agent.save_model(msg["path"])
