@@ -3,8 +3,9 @@ from independent_dqn.agent import DQNAgent
 import numpy as np
 from matplotlib import pyplot as plt
 import torch
+import time
 
-N_AGENTS = 4
+N_AGENTS = 3
 
 MAX_EPISODES = 1_000_001
 MAX_STEPS = 25
@@ -21,7 +22,7 @@ rewards_history = []
 for episode in range(MAX_EPISODES):
     obs, _ = env.reset()
     total_reward = 0
-
+    t0 = time.perf_counter()
     for step in range(MAX_STEPS):
         actions = {}
         for agent in agents:
@@ -47,16 +48,17 @@ for episode in range(MAX_EPISODES):
                 agent.update(samples)
 
     print("episode", episode, "reward:", total_reward)
+    print("time:", time.perf_counter() - t0)
     rewards_history.append(total_reward)
     if (episode + 1) % 500 == 0:
         # plotting rolling avg rewards of agent 0
         avg_rewards = np.sum(rewards_history[-100:]) / len(rewards_history[-100:])
         plt.clf()
-        plt.scatter(range(len(rewards_history)), rewards_history)
+        plt.plot(rewards_history, '.', c='blue')
         rolling_avg = np.convolve(rewards_history, np.ones(100), 'valid') / 100
         plt.plot(range(100, len(rolling_avg) + 100), rolling_avg, c='red')
         ax = plt.gca()
-        ax.set_ylim([None, 0])
+        # ax.set_ylim([None, 0])
         plt.savefig(f"dqn{N_AGENTS}agents.png")
         # saving data for later
         torch.save(rewards_history, f'dqn_rewards_history{N_AGENTS}agents.pth')
