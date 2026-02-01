@@ -11,13 +11,15 @@ class ReplayBuffer:
         self.buffer.append(experience)
 
     def sample(self, batch_size):
-        states, actions, rewards, next_states, finals = zip(*random.sample(self.buffer, batch_size))
+        observations, actions, rewards, next_states, finals, istates = zip(*random.sample(self.buffer, batch_size))
+        # istates, actions, rewards, next_states, finals = zip(*random.sample(self.buffer, batch_size))
         return (
-            torch.stack(states),
+            torch.stack(observations),
             torch.stack(actions),
             torch.stack(rewards),
             torch.stack(next_states),
-            torch.stack(finals)
+            torch.stack(finals),
+            torch.stack(istates)
         )
 
     def __len__(self):

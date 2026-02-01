@@ -2,7 +2,7 @@ import math
 import os
 import torch
 import torch.optim as optim
-from model_based.model import ValueNetwork, EnvironmentModel
+from model_based.model import ValueNetwork, EnvironmentModel, HistoryEncoder
 from model_based.replay_buffer import ReplayBuffer
 import numpy as np
 import torch.nn.functional as F
@@ -20,65 +20,72 @@ class MBAgent:
         self.tau = tau
         # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.device = torch.device("cpu")
+        self.internal_state_dim = 128
 
-        self.value_network = ValueNetwork(obs_dim).to(self.device)
-        self.value_target = ValueNetwork(obs_dim).to(self.device)
+        self.value_network = ValueNetwork(self.internal_state_dim).to(self.device)
+        self.value_target = ValueNetwork(self.internal_state_dim).to(self.device)
         self.value_target.load_state_dict(self.value_network.state_dict())
 
-        self.environment_model = EnvironmentModel(obs_dim, act_dim).to(self.device)
+        self.history_encoder = HistoryEncoder(self.internal_state_dim, obs_dim).to(self.device)
+        self.environment_model = EnvironmentModel(self.internal_state_dim, act_dim, obs_dim).to(self.device)
 
         self.value_optimizer = optim.Adam(self.value_network.parameters(), lr=0.0001)
+        self.encoder_optimizer = optim.Adam(self.history_encoder.parameters(), lr=0.0001)
         self.environment_optimizer = optim.Adam(self.environment_model.parameters(), lr=0.0001)
 
-        self.replay = ReplayBuffer(25_000)
+        self.replay = ReplayBuffer()
         self.steps_done = 0
 
-    def act(self, obs, explore=True):
+    def act(self, obs, internal_state, explore=True):
         with torch.inference_mode():
             obs_tensor = torch.as_tensor(obs, device=self.device, dtype=torch.float32)
-            next_states, rewards, finals = self.environment_model(obs_tensor)
-            next_states = next_states.view(self.act_dim, self.obs_dim)
-            next_states_values = self.value_network(next_states).flatten()
+            istate = self.history_encoder(internal_state, obs_tensor)
+            next_observations, rewards, finals = self.environment_model(istate)
+            next_observations = next_observations.view(self.act_dim, self.obs_dim)
+            next_istates = self.history_encoder(istate.unsqueeze(0).expand(self.act_dim, -1), next_observations)
+            next_states_values = self.value_network(next_istates).flatten()
             finals = torch.sigmoid(finals)
             if explore:
                 eps = self.eps_end + (self.eps_start - self.eps_end) * math.exp(-1. * self.steps_done / self.eps_decay)
                 self.steps_done += 1
                 if np.random.random_sample() < eps:
-                    return np.random.randint(0, self.act_dim)
+                    return np.random.randint(0, self.act_dim), istate
 
             expected_returns = self.gamma * next_states_values * (1.0 - finals) + rewards
-            return torch.argmax(expected_returns).item()
+            return torch.argmax(expected_returns).item(), istate
 
     def update(self, samples):
-        states, actions, rewards, next_states, finals = samples
-
+        observations, actions, rewards, next_observations, finals, prev_istates = samples
+        # istates, actions, rewards, next_observations, finals = samples
         # ======== Environment Model update ========
-
-        pred_next_states, pred_rewards, pred_finals = self.environment_model(states)
+        istates = self.history_encoder(prev_istates, observations)
+        pred_next_observations, pred_rewards, pred_finals = self.environment_model(istates)
         # reshape pred_next_states: (B, act_dim * obs_dim) → (B, act_dim, obs_dim)
-        pred_next_states = pred_next_states.view(-1, self.act_dim, self.obs_dim)
+        pred_next_observations = pred_next_observations.view(-1, self.act_dim, self.obs_dim)
         # gather predictions for actual actions
-        batch_idx = torch.arange(pred_next_states.size(0), device=self.device)
-        pred_next_states = pred_next_states[batch_idx, actions]
+        batch_idx = torch.arange(pred_next_observations.size(0), device=self.device)
+        pred_next_observations = pred_next_observations[batch_idx, actions]
         pred_rewards = pred_rewards[batch_idx, actions]
         pred_finals = pred_finals[batch_idx, actions]
         # compute loss and optimize environment model
-        next_states_loss = F.mse_loss(pred_next_states, next_states)
+        next_observations_loss = F.mse_loss(pred_next_observations, next_observations)
         rewards_loss = F.mse_loss(pred_rewards, rewards)
-        # pos_weight = torch.tensor([250.0], device=self.device)
         finals_loss = F.binary_cross_entropy_with_logits(pred_finals, finals)
-        environment_loss = next_states_loss + rewards_loss + finals_loss
+        environment_loss = next_observations_loss + rewards_loss + finals_loss
         self.environment_optimizer.zero_grad()
+        self.encoder_optimizer.zero_grad()
         environment_loss.backward()
         self.environment_optimizer.step()
+        self.encoder_optimizer.step()
 
-    def update_value(self, obs, reward, next_state, final):
-        obs = torch.as_tensor(obs, device=self.device, dtype=torch.float32)
-        next_state = torch.as_tensor(next_state, device=self.device, dtype=torch.float32)
+    def update_value(self, istate, reward, next_observation, final):
+        next_observation = torch.as_tensor(next_observation, dtype=torch.float32, device=self.device)
         # ======== Value Network Update ========
-        state_value = self.value_network(obs)
         with torch.no_grad():
-            next_state_value = self.value_target(next_state)
+            next_istate = self.history_encoder(istate, next_observation)
+        state_value = self.value_network(istate)
+        with torch.no_grad():
+            next_state_value = self.value_target(next_istate)
             target_state_value = self.gamma * next_state_value * (1.0 - final) + reward
 
         states_values_loss = F.mse_loss(state_value, target_state_value)
