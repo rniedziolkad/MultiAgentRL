@@ -106,9 +106,11 @@ class MBAgent:
         os.makedirs(dir_path, exist_ok=True)
         torch.save(self.value_network.state_dict(), dir_path+self.name+"_value.pth")
         torch.save(self.environment_model.state_dict(), dir_path+self.name+"_environment.pth")
+        torch.save(self.history_encoder.state_dict(), dir_path+self.name+"_encoder.pth")
 
     def load_model(self, dir_path):
         self.value_network.load_state_dict(torch.load(dir_path+self.name+"_value.pth"))
         self.environment_model.load_state_dict(torch.load(dir_path+self.name+"_environment.pth"))
+        self.history_encoder.load_state_dict(torch.load(dir_path+self.name+"_encoder.pth"))
         self.value_target.load_state_dict(self.value_network.state_dict())
         print(self.name + ": loaded model")

@@ -41,7 +41,7 @@ def main():
                     obs_dim=reduce(lambda x, y: x*y, env.observation_space(name).shape),
                     act_dim=env.action_space(name).n,
                     eps_end=0.0001,
-                    eps_decay=25_000,
+                    eps_decay=50_000,
                 ),
                 child_conn,
                 BATCH_SIZE,
