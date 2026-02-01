@@ -17,7 +17,7 @@ class HistoryEncoder(nn.Module):
         x = self.relu1(self.layer1(torch.cat((internal_state, obs), dim=-1)))
         x = self.relu2(self.layer2(x))
         x = self.relu3(self.layer3(x))
-        istate = self.istate_layer(x);
+        istate = self.istate_layer(x)
         return istate
 
 
