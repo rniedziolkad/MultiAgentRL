@@ -16,7 +16,7 @@ def update_loop(agent, batch_size):
 
 def agent_worker(agent_ctor, agent_kwargs, conn, batch_size, load_path=None, start_episode=0):
     agent = agent_ctor(**agent_kwargs)
-    if start_episode != 0:
+    if start_episode >= 0:
         agent.load_model(load_path + f"ep{start_episode}/")
         agent.steps_done = 25 * (start_episode + 1)
     

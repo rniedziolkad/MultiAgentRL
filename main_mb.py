@@ -8,14 +8,14 @@ from model_based.agent import MBAgent
 from model_based.agent_worker import agent_worker
 import time
 # ==== Config ==== #
-N_AGENTS = 3                # 3 is default for Simple Spread
+N_AGENTS = 8                # 3 is default for Simple Spread
 MAX_EPISODES = 1_000_001
 MAX_STEPS = 25              # 25 is default for Simple Spread
 BATCH_SIZE = 32
 rewards_history_path = f'mb_rewards_history_par{N_AGENTS}agents.pth'
 saved_model_path = f"model_based/saved_models{N_AGENTS}/"
 plot_path = f"mb_par{N_AGENTS}agents.png"
-START_EPISODE = 290_000
+START_EPISODE = -1          # -1 to start new without loading models
 # ================ #
 
 
@@ -56,7 +56,7 @@ def main():
     print("cpu")
     print("Agents' processes: ", agent_procs)
     rewards_history = []
-    if START_EPISODE != 0:
+    if START_EPISODE >= 0:
         rewards_history = torch.load(rewards_history_path)
         rewards_history = rewards_history[:START_EPISODE+1]
         print("loaded rewards history", len(rewards_history), rewards_history[-3:])
