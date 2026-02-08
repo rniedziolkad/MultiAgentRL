@@ -4,19 +4,22 @@ from maddpg.replay_buffer import ReplayBuffer
 import numpy as np
 from matplotlib import pyplot as plt
 import torch
+import time
 
-N_AGENTS = 4
+N_AGENTS = 3
 
 MAX_EPISODES = 1_000_001
 MAX_STEPS = 25
 BATCH_SIZE = 32
+START_EPISODE = 0
 
 env = simple_spread_v3.parallel_env(N=N_AGENTS, max_cycles=MAX_STEPS, render_mode="none")
 env.reset(seed=42)
 
 rewards_history_file = f'maddpg_rewards_history{N_AGENTS}agents.pth'
-START_EPISODE = 920000
 saved_model_folder = f"maddpg/saved_models{N_AGENTS}"
+plot_path = f"maddpg{N_AGENTS}agents.png"
+
 
 agents = [MADDPGAgent(name, env.observation_space(name).shape[0], env.action_space(name).n, n_agents=N_AGENTS)
           for name in env.agents]
@@ -40,6 +43,7 @@ else:
 for episode in range(START_EPISODE + 1, MAX_EPISODES):
     obs, _ = env.reset()
     total_reward = 0
+    t0 = time.perf_counter()
 
     for step in range(MAX_STEPS):
         actions = {}
@@ -60,17 +64,19 @@ for episode in range(START_EPISODE + 1, MAX_EPISODES):
                 agent.update(samples, agents)
 
     print("episode", episode, "reward:", total_reward)
+    t1 = time.perf_counter()
+    print("time: ", t1 - t0)
     rewards_history.append(total_reward)
-    if (episode + 1) % 100 == 0:
+    if (episode + 1) % 500 == 0:
         # plotting rolling avg rewards of agent 0
         avg_rewards = np.sum(rewards_history[-100:]) / len(rewards_history[-100:])
         plt.clf()
-        plt.scatter(range(len(rewards_history)), rewards_history)
+        plt.plot(rewards_history, '.', c='blue')
         rolling_avg = np.convolve(rewards_history, np.ones(100), 'valid') / 100
         plt.plot(range(100, len(rolling_avg) + 100), rolling_avg, c='red')
         ax = plt.gca()
-        ax.set_ylim([None, 0])
-        plt.savefig(f"maddpg{N_AGENTS}agents.png")
+        # ax.set_ylim([None, 0])
+        plt.savefig(plot_path)
 
     if (episode + 1) % 500 == 0:
         # saving data for later
