@@ -15,7 +15,7 @@ BATCH_SIZE = 32
 rewards_history_path = f'mb_rewards_history_par{N_AGENTS}agents.pth'
 saved_model_path = f"model_based/saved_models{N_AGENTS}/"
 plot_path = f"mb_par{N_AGENTS}agents.png"
-START_EPISODE = -1          # -1 to start new without loading models
+START_EPISODE = 200_000          # -1 to start new without loading models
 # ================ #
 
 
