@@ -122,10 +122,6 @@ class MADDPGAgent:
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
         self.actor_optimizer.step()
-
-        if random.randint(1, 1000) == 1:
-            print(self.name + " critic loss:", critic_loss)
-            print(self.name + " actor loss:", actor_loss)
         # ======== Target Network Soft Updates =========
         self._soft_update(self.actor_target, self.actor)
         self._soft_update(self.critic_target, self.critic)

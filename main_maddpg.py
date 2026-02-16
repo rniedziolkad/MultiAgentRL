@@ -6,12 +6,12 @@ from matplotlib import pyplot as plt
 import torch
 import time
 
-N_AGENTS = 3
+N_AGENTS = 8
 
 MAX_EPISODES = 1_000_001
 MAX_STEPS = 25
 BATCH_SIZE = 32
-START_EPISODE = 0
+START_EPISODE = 80_000      # -1 to start without loading models
 
 env = simple_spread_v3.parallel_env(N=N_AGENTS, max_cycles=MAX_STEPS, render_mode="none")
 env.reset(seed=42)
@@ -26,13 +26,13 @@ agents = [MADDPGAgent(name, env.observation_space(name).shape[0], env.action_spa
 
 for i, agent in enumerate(agents):
     agent.index = i
-    if START_EPISODE != 0:
+    if START_EPISODE >= 0:
         agent.load_model(saved_model_folder + "/ep"+str(START_EPISODE)+"/")
 
 print(agents)
 
 replay_buffer = ReplayBuffer()
-if START_EPISODE != 0:
+if START_EPISODE >= 0:
     rewards_history = torch.load(rewards_history_file)
     rewards_history = rewards_history[:START_EPISODE + 1]
     print("Rewards history: ", len(rewards_history), rewards_history[-3:])
