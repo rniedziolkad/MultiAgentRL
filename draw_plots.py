@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-window_size = 200
+window_size = 5000
 # maddpg_reward_history = torch.load('maddpg_rewards_history4agents.pth')
-mb_reward_history = np.load('mb_rewards_history8agents-pursuit.npy')
+mb_reward_history = np.load('mb_rewards_history8agents-pursuit125.npy')
 # mb_reward_history2 = torch.load('mb_rewards_history_target4agents.pth')
 # mb_reward_historyP = torch.load('mb_rewards_history_par4agents.pth')
 # dqn_reward_history = torch.load("dqn_rewards_history4agents.pth")
@@ -27,7 +27,7 @@ mb_rolling_average0 = mb_reward_series0.rolling(window=window_size).mean()
 
 # plt.plot(maddpg_rolling_average0, label="MADDPG")
 # plt.plot(dqn_rolling_average0, label="DQN")
-plt.plot(mb_reward_history, '.')
+# plt.plot(mb_reward_history, '.')
 plt.plot(mb_rolling_average0, label="MB")
 # plt.plot(mb2_rolling_average0, label="MB_target")
 # plt.plot(mbP_rolling_average0, label="MB_parallel")

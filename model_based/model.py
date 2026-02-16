@@ -21,29 +21,29 @@ class HistoryEncoder(nn.Module):
         return istate
 
 
-# class HistoryDecoder(nn.Module):
-#     def __init__(self, input_dim, obs_dim):
-#         super().__init__()
-#         self.layer1 = nn.Linear(input_dim, 128)
-#         self.relu1 = nn.ReLU()
-#         self.layer2 = nn.Linear(128, 256)
-#         self.relu2 = nn.ReLU()
-#         self.layer3 = nn.Linear(256, 128)
-#         self.relu3 = nn.ReLU()
-#         self.obs_layer = nn.Linear(128, obs_dim)
-#         self.prev_istate_layer = nn.Linear(128, input_dim)
-#
-#     def forward(self, internal_state):
-#         x = self.relu1(self.layer1(internal_state))
-#         x = self.relu2(self.layer2(x))
-#         x = self.relu3(self.layer3(x))
-#         obs = self.obs_layer(x)
-#         prev_istate = self.prev_istate_layer(x)
-#         return prev_istate, obs
+class HistoryDecoder(nn.Module):
+    def __init__(self, istate_dim, obs_dim):
+        super().__init__()
+        self.layer1 = nn.Linear(istate_dim, 128)
+        self.relu1 = nn.ReLU()
+        self.layer2 = nn.Linear(128, 256)
+        self.relu2 = nn.ReLU()
+        self.layer3 = nn.Linear(256, 128)
+        self.relu3 = nn.ReLU()
+        self.last_obs_layer = nn.Linear(128, obs_dim)
+        self.prev_istate_layer = nn.Linear(128, istate_dim)
+
+    def forward(self, internal_state):
+        x = self.relu1(self.layer1(internal_state))
+        x = self.relu2(self.layer2(x))
+        x = self.relu3(self.layer3(x))
+        last_obs = self.last_obs_layer(x)
+        prev_istate = self.prev_istate_layer(x)
+        return prev_istate, last_obs
 
 
 class EnvironmentModel(nn.Module):
-    def __init__(self, internal_state_dim, act_dim, obs_dim):
+    def __init__(self, internal_state_dim, act_dim):
         super().__init__()
         self.layer1 = nn.Linear(internal_state_dim, 128)
         self.relu1 = nn.ReLU()
@@ -51,7 +51,7 @@ class EnvironmentModel(nn.Module):
         self.relu2 = nn.ReLU()
         self.layer3 = nn.Linear(256, 128)
         self.relu3 = nn.ReLU()
-        self.next_obs_layer = nn.Linear(128, act_dim * obs_dim)
+        self.next_istate_layer = nn.Linear(128, act_dim * internal_state_dim)
         self.reward_layer = nn.Linear(128, act_dim)
         self.final_layer = nn.Linear(128, act_dim)
 
@@ -59,10 +59,10 @@ class EnvironmentModel(nn.Module):
         x = self.relu1(self.layer1(internal_state))
         x = self.relu2(self.layer2(x))
         x = self.relu3(self.layer3(x))
-        next_observations = self.next_obs_layer(x)
+        next_istates = self.next_istate_layer(x)
         rewards = self.reward_layer(x)
         finals = self.final_layer(x)
-        return next_observations, rewards, finals
+        return next_istates, rewards, finals
 
 
 # Value Network V(state) --- "how valuable being in given state is"
