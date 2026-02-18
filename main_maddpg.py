@@ -11,7 +11,7 @@ N_AGENTS = 8
 MAX_EPISODES = 1_000_001
 MAX_STEPS = 25
 BATCH_SIZE = 32
-START_EPISODE = 80_000      # -1 to start without loading models
+START_EPISODE = 220_000      # -1 to start without loading models
 
 env = simple_spread_v3.parallel_env(N=N_AGENTS, max_cycles=MAX_STEPS, render_mode="none")
 env.reset(seed=42)
