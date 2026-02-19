@@ -11,12 +11,12 @@ from functools import reduce
 # ==== Config ==== #
 N_AGENTS = 8            # 8 is default for pursuit
 MAX_EPISODES = 1_000_001
-MAX_STEPS = 125         # 500 is default for pursuit
+MAX_STEPS = 64         # 500 is default for pursuit
 BATCH_SIZE = 32
-rewards_history_path = f'mb_rewards_history{N_AGENTS}agents-pursuit125.npy'
+rewards_history_path = f'mb_rewards_history{N_AGENTS}agents-pursuit64.npy'
 saved_model_path = f"model_based/saved_models{N_AGENTS}/"
-plot_path = f"mb_{N_AGENTS}agents-pursuit125.png"
-start_episode = -1      # -1 to start without loading models
+plot_path = f"mb_{N_AGENTS}agents-pursuit64.png"
+start_episode = 15000      # -1 to start without loading models
 # ================ #
 
 def main():
@@ -40,7 +40,7 @@ def main():
                     obs_dim=reduce(lambda x, y: x*y, env.observation_space(name).shape),
                     act_dim=env.action_space(name).n,
                     eps_end=0.0001,
-                    eps_decay=50_000,
+                    eps_decay=25_000,
                 ),
                 child_conn,
                 BATCH_SIZE,
@@ -104,7 +104,7 @@ def main():
             ax = plt.gca()
             # ax.set_ylim([None, 0])
             plt.savefig(plot_path)
-        if episode % 500 == 0:
+        if episode % 1000 == 0:
             # saving data for later
             np.save(rewards_history_path, rewards_history)
             for name, conn in agent_conns.items():

@@ -5,7 +5,7 @@ import numpy as np
 
 window_size = 5000
 # maddpg_reward_history = torch.load('maddpg_rewards_history4agents.pth')
-mb_reward_history = np.load('mb_rewards_history8agents-pursuit125.npy')
+mb_reward_history = np.load('mb_rewards_history8agents-pursuit64.npy')
 # mb_reward_history2 = torch.load('mb_rewards_history_target4agents.pth')
 # mb_reward_historyP = torch.load('mb_rewards_history_par4agents.pth')
 # dqn_reward_history = torch.load("dqn_rewards_history4agents.pth")

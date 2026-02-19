@@ -35,7 +35,7 @@ class MBAgent:
         self.decoder_optimizer = optim.Adam(self.history_decoder.parameters(), lr=0.0001)
         self.environment_optimizer = optim.Adam(self.environment_model.parameters(), lr=0.0001)
 
-        self.replay = ReplayBuffer(125)
+        self.replay = ReplayBuffer(128)
         self.steps_done = 0
 
     def act(self, obs, internal_state, explore=True):
@@ -70,8 +70,8 @@ class MBAgent:
         self.decoder_optimizer.step()
         self.encoder_optimizer.step()
         # ======== Environment Model update ========
-        with torch.no_grad():
-            istates = self.history_encoder(prev_istates, observations)
+        # with torch.no_grad():
+        istates = self.history_encoder(prev_istates, observations)
         pred_next_istates, pred_rewards, pred_finals = self.environment_model(istates)
         # reshape pred_next_istates: (B, act_dim * istate_dim) → (B, act_dim, istate_dim)
         pred_next_istates = pred_next_istates.view(-1, self.act_dim, self.internal_state_dim)
@@ -87,8 +87,12 @@ class MBAgent:
         finals_loss = F.binary_cross_entropy_with_logits(pred_finals, finals)
         environment_loss = next_observations_loss + rewards_loss + finals_loss
         self.environment_optimizer.zero_grad()
+        self.encoder_optimizer.zero_grad()
+        self.decoder_optimizer.zero_grad()
         environment_loss.backward()
         self.environment_optimizer.step()
+        self.encoder_optimizer.step()
+        self.decoder_optimizer.step()
 
     def update_value(self, istate, reward, next_observation, final):
         next_observation = torch.as_tensor(next_observation, dtype=torch.float32, device=self.device)
@@ -116,14 +120,15 @@ class MBAgent:
     def save_model(self, dir_path):
         os.makedirs(dir_path, exist_ok=True)
         torch.save(self.value_network.state_dict(), dir_path+self.name+"_value.pth")
+        torch.save(self.value_target.state_dict(), dir_path+self.name+"_target.pth")
         torch.save(self.environment_model.state_dict(), dir_path+self.name+"_environment.pth")
         torch.save(self.history_encoder.state_dict(), dir_path+self.name+"_encoder.pth")
-        # torch.save(self.history_decoder.state_dict(), dir_path+self.name+"_decoder.pth")
+        torch.save(self.history_decoder.state_dict(), dir_path+self.name+"_decoder.pth")
 
     def load_model(self, dir_path):
         self.value_network.load_state_dict(torch.load(dir_path+self.name+"_value.pth"))
+        self.value_target.load_state_dict(torch.load(dir_path+self.name+"_target.pth"))
         self.environment_model.load_state_dict(torch.load(dir_path+self.name+"_environment.pth"))
         self.history_encoder.load_state_dict(torch.load(dir_path+self.name+"_encoder.pth"))
-        # self.history_decoder.load_state_dict(torch.load(dir_path+self.name+"_decoder.pth"))
-        self.value_target.load_state_dict(self.value_network.state_dict())
+        self.history_decoder.load_state_dict(torch.load(dir_path+self.name+"_decoder.pth"))
         print(self.name + ": loaded model")
