@@ -35,7 +35,7 @@ class MBAgent:
         self.decoder_optimizer = optim.Adam(self.history_decoder.parameters(), lr=0.0001)
         self.environment_optimizer = optim.Adam(self.environment_model.parameters(), lr=0.0001)
 
-        self.replay = ReplayBuffer(128)
+        self.replay = ReplayBuffer(64)
         self.steps_done = 0
 
     def act(self, obs, internal_state, explore=True):
@@ -70,8 +70,8 @@ class MBAgent:
         self.decoder_optimizer.step()
         self.encoder_optimizer.step()
         # ======== Environment Model update ========
-        # with torch.no_grad():
-        istates = self.history_encoder(prev_istates, observations)
+        with torch.no_grad():
+            istates = self.history_encoder(prev_istates, observations)
         pred_next_istates, pred_rewards, pred_finals = self.environment_model(istates)
         # reshape pred_next_istates: (B, act_dim * istate_dim) → (B, act_dim, istate_dim)
         pred_next_istates = pred_next_istates.view(-1, self.act_dim, self.internal_state_dim)
@@ -87,12 +87,12 @@ class MBAgent:
         finals_loss = F.binary_cross_entropy_with_logits(pred_finals, finals)
         environment_loss = next_observations_loss + rewards_loss + finals_loss
         self.environment_optimizer.zero_grad()
-        self.encoder_optimizer.zero_grad()
-        self.decoder_optimizer.zero_grad()
+        # self.encoder_optimizer.zero_grad()
+        # self.decoder_optimizer.zero_grad()
         environment_loss.backward()
         self.environment_optimizer.step()
-        self.encoder_optimizer.step()
-        self.decoder_optimizer.step()
+        # self.encoder_optimizer.step()
+        # self.decoder_optimizer.step()
 
     def update_value(self, istate, reward, next_observation, final):
         next_observation = torch.as_tensor(next_observation, dtype=torch.float32, device=self.device)

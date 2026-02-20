@@ -12,11 +12,11 @@ from functools import reduce
 N_AGENTS = 8            # 8 is default for pursuit
 MAX_EPISODES = 1_000_001
 MAX_STEPS = 64         # 500 is default for pursuit
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 rewards_history_path = f'mb_rewards_history{N_AGENTS}agents-pursuit64.npy'
 saved_model_path = f"model_based/saved_models{N_AGENTS}/"
 plot_path = f"mb_{N_AGENTS}agents-pursuit64.png"
-start_episode = 15000      # -1 to start without loading models
+start_episode = -1      # -1 to start without loading models
 # ================ #
 
 def main():
