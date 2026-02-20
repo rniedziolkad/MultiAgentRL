@@ -24,9 +24,9 @@ mb_rolling_average0 = mb_reward_series0.rolling(window=window_size).mean()
 # mbP_reward_series0 = pd.Series(mb_reward_historyP)
 # mbP_rolling_average0 = mbP_reward_series0.rolling(window=window_size).mean()
 
-plt.plot(maddpg_rolling_average0, label="MADDPG", c="tab:blue")
+plt.plot(maddpg_rolling_average0[:300000], label="MADDPG", c="tab:blue")
 # plt.plot(dqn_rolling_average0, label="DQN", c ="tab:orange")
-plt.plot(mb_rolling_average0, label="MB", c="tab:green")
+plt.plot(mb_rolling_average0[:300000], label="MB", c="tab:green")
 # plt.plot(mb2_rolling_average0, label="MB_target")
 # plt.plot(mbP_rolling_average0, label="MB_parallel")
 
