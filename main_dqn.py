@@ -11,7 +11,7 @@ MAX_EPISODES = 1_000_001
 MAX_STEPS = 25
 BATCH_SIZE = 32
 
-env = simple_spread_v3.parallel_env(N=N_AGENTS, max_cycles=MAX_STEPS, render_mode="none")
+env = simple_spread_v3.parallel_env(N=N_AGENTS, max_cycles=MAX_STEPS, render_mode="human")
 env.reset(seed=42)
 agents = [DQNAgent(name, env.observation_space(name).shape[0], env.action_space(name).n, eps_end=0.0001, eps_decay=10000)
           for name in env.agents]

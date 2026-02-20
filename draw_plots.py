@@ -4,9 +4,8 @@ import pandas as pd
 
 window_size = 5_000
 maddpg_reward_history = torch.load('maddpg_rewards_history8agents.pth')
-# mb_reward_history = torch.load('mb_rewards_history_no-target3agents.pth')
-# mb_reward_history2 = torch.load('mb_rewards_history_target4agents.pth')
-mb_reward_history = torch.load('mb_rewards_history_par8agents.pth')
+mb_reward_history2 = torch.load('mb_rewards_history_no-target4agents.pth')
+mb_reward_history = torch.load('mb_rewards_history_par4agents.pth')
 dqn_reward_history = torch.load("dqn_rewards_history4agents.pth")
 
 maddpg_reward_series0 = pd.Series(maddpg_reward_history)
@@ -18,23 +17,23 @@ dqn_rolling_average0 = dqn_reward_series0.rolling(window=window_size).mean()
 mb_reward_series0 = pd.Series(mb_reward_history)
 mb_rolling_average0 = mb_reward_series0.rolling(window=window_size).mean()
 
-# mb2_reward_series0 = pd.Series(mb_reward_history2)
-# mb2_rolling_average0 = mb2_reward_series0.rolling(window=window_size).mean()
+mb2_reward_series0 = pd.Series(mb_reward_history2)
+mb2_rolling_average0 = mb2_reward_series0.rolling(window=window_size).mean()
 
 # mbP_reward_series0 = pd.Series(mb_reward_historyP)
 # mbP_rolling_average0 = mbP_reward_series0.rolling(window=window_size).mean()
 
-plt.plot(maddpg_rolling_average0[:300000], label="MADDPG", c="tab:blue")
+# plt.plot(maddpg_rolling_average0[:300000], label="MADDPG", c="tab:blue")
 # plt.plot(dqn_rolling_average0, label="DQN", c ="tab:orange")
-plt.plot(mb_rolling_average0[:300000], label="MB", c="tab:green")
-# plt.plot(mb2_rolling_average0, label="MB_target")
+plt.plot(mb_rolling_average0, label="MB target", c="tab:green")
+plt.plot(mb2_rolling_average0, label="MB no target", c="tab:red")
 # plt.plot(mbP_rolling_average0, label="MB_parallel")
 
 plt.xlabel('Episode')
 plt.ylabel('Average Total Reward')
 plt.legend()
 # plt.xticks(np.arange(0, 90_001, 10_000))
-plt.savefig("ss4_learning_results.pdf")
+plt.savefig("ss4_target.pdf")
 # plt.ylim(bottom=-400)
 # plt.xlim(left=0, right=30_000)
 plt.show()
