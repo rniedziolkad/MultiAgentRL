@@ -62,8 +62,9 @@ class MBAgent:
         next_istates = self.history_encoder(istates, next_observations)
         decoded_istates, decoded_next_observations = self.history_decoder(next_istates)
         autoencoder_loss = F.mse_loss(decoded_next_observations, next_observations)
-        _, decoded_observations = self.history_decoder(decoded_istates)
+        decoded_prev_istates, decoded_observations = self.history_decoder(decoded_istates)
         autoencoder_loss += F.mse_loss(decoded_observations, observations)
+        autoencoder_loss += F.mse_loss(decoded_prev_istates, prev_istates)
         self.decoder_optimizer.zero_grad()
         self.encoder_optimizer.zero_grad()
         autoencoder_loss.backward()
@@ -78,14 +79,15 @@ class MBAgent:
         # gather predictions for actual actions
         batch_idx = torch.arange(pred_next_istates.size(0), device=self.device)
         pred_next_istates = pred_next_istates[batch_idx, actions]
-        _, pred_next_observations = self.history_decoder(pred_next_istates)
+        decoded_istates, pred_next_observations = self.history_decoder(pred_next_istates)
         pred_rewards = pred_rewards[batch_idx, actions]
         pred_finals = pred_finals[batch_idx, actions]
         # compute loss and optimize environment model
         next_observations_loss = F.mse_loss(pred_next_observations, next_observations)
+        reconstruction_loss = F.mse_loss(decoded_istates, istates)
         rewards_loss = F.mse_loss(pred_rewards, rewards)
         finals_loss = F.binary_cross_entropy_with_logits(pred_finals, finals)
-        environment_loss = next_observations_loss + rewards_loss + finals_loss
+        environment_loss = next_observations_loss + reconstruction_loss + rewards_loss + finals_loss
         self.environment_optimizer.zero_grad()
         # self.encoder_optimizer.zero_grad()
         # self.decoder_optimizer.zero_grad()
