@@ -16,7 +16,7 @@ BATCH_SIZE = 16
 rewards_history_path = f'mb_rewards_history{N_AGENTS}agents-pursuit64.npy'
 saved_model_path = f"model_based/saved_models{N_AGENTS}/"
 plot_path = f"mb_{N_AGENTS}agents-pursuit64.png"
-start_episode = -1      # -1 to start without loading models
+start_episode = 11000      # -1 to start without loading models
 # ================ #
 
 def main():
